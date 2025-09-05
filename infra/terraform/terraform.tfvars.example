@@ -1,0 +1,8 @@
+# Copy this file to terraform.tfvars and update the values
+
+# Required variables
+project_id = "your-gcp-project-id"
+
+# Optional variables (will use defaults if not specified)
+region      = "us-central1"
+environment = "dev"
