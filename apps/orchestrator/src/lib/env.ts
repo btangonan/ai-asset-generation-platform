@@ -28,6 +28,7 @@ const envSchema = z.object({
   MAX_ROWS_PER_BATCH: z.coerce.number().default(10),
   MAX_VARIANTS_PER_ROW: z.coerce.number().default(3),
   USER_COOLDOWN_MINUTES: z.coerce.number().default(10),
+  USER_DAILY_LIMIT: z.coerce.number().default(100),
   
   // Cost controls
   RUN_MODE: z.enum(['dry_run', 'live']).default('dry_run'),

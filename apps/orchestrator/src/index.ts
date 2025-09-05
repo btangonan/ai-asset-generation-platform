@@ -9,6 +9,7 @@ import rateLimit from '@fastify/rate-limit';
 import { createServer } from './server.js';
 import { env } from './lib/env.js';
 import { logger } from './lib/logger.js';
+import { startRateLimitCleanup } from './lib/rate-limit.js';
 
 async function bootstrap() {
   const app = Fastify({
@@ -44,6 +45,9 @@ async function bootstrap() {
 
   // Register routes
   await app.register(createServer);
+  
+  // Start rate limit cleanup
+  startRateLimitCleanup();
 
   // Graceful shutdown
   const signals = ['SIGINT', 'SIGTERM'];

@@ -11,7 +11,7 @@ export const ResolutionSchema = z.union([z.literal(720), z.literal(1080)]);
 export const ImageBatchItemSchema = z.object({
   scene_id: z.string().min(1).max(50),
   prompt: z.string().min(1).max(1000),
-  ref_pack_public_url: z.string().url(),
+  ref_pack_public_urls: z.array(z.string().url()).max(6).optional(), // Support up to 6 reference images
   variants: z.number().int().min(1).max(3),
 });
 

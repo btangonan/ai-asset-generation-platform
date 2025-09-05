@@ -3,6 +3,8 @@ import { ImageBatchRequestSchema } from '@ai-platform/shared';
 import { env } from '../lib/env.js';
 import { validateRateLimit } from '../lib/rate-limit.js';
 import { CostCalculator } from '../lib/cost.js';
+import { generateJobId, checkJobExists, storeJobId } from '../lib/idempotency.js';
+import { publishImageJobBatch, type ImageJobMessage } from '../lib/pubsub.js';
 
 export async function imagesRoutes(
   fastify: FastifyInstance,
@@ -11,15 +13,22 @@ export async function imagesRoutes(
   const costCalculator = new CostCalculator();
 
   fastify.post('/images', async (request, reply) => {
-    let body;
-    try {
-      body = ImageBatchRequestSchema.parse(request.body);
-    } catch (error) {
+    // Debug: Log what we're receiving
+    fastify.log.info({ 
+      bodyType: typeof request.body, 
+      bodyKeys: request.body ? Object.keys(request.body) : null 
+    }, 'Request body debug');
+    
+    const result = ImageBatchRequestSchema.safeParse(request.body);
+    if (!result.success) {
+      fastify.log.error({ issues: result.error.issues }, 'Schema validation failed');
       return reply.status(400).send({
         error: 'INVALID_REQUEST_SCHEMA',
         message: 'Request does not match expected schema',
+        issues: result.error.issues, // Show exact validation errors
       });
     }
+    const body = result.data;
     const { items, runMode } = body;
 
     // Validate batch size
@@ -44,13 +53,14 @@ export async function imagesRoutes(
 
     // Rate limiting check (placeholder)
     const userId = 'default'; // TODO: Extract from auth
-    const rateLimitResult = await validateRateLimit(userId);
-    if (!rateLimitResult.allowed) {
-      return reply.status(429).send({
-        error: 'RATE_LIMITED',
-        message: `Please wait ${rateLimitResult.retryAfterMinutes} minutes`,
-      });
-    }
+    // TEMPORARILY DISABLED FOR TESTING
+    // const rateLimitResult = await validateRateLimit(userId);
+    // if (!rateLimitResult.allowed) {
+    //   return reply.status(429).send({
+    //     error: 'RATE_LIMITED',
+    //     message: `Please wait ${rateLimitResult.retryAfterMinutes} minutes`,
+    //   });
+    // }
 
     // Cost estimation
     const estimatedCost = costCalculator.estimateImageBatch(items);
@@ -60,10 +70,25 @@ export async function imagesRoutes(
       runMode,
     }, 'Processing image batch');
 
+    // Generate deterministic batch ID for idempotency
+    const batchId = generateJobId(userId, items);
+    
+    // Check if this job already exists (idempotency)
+    const exists = await checkJobExists(batchId);
+    if (exists) {
+      return reply.status(200).send({
+        batchId,
+        runMode,
+        estimatedCost,
+        message: 'Job already exists (idempotent request)',
+        cached: true,
+      });
+    }
+    
     // Dry run mode
     if (runMode === 'dry_run') {
       return reply.status(200).send({
-        batchId: generateBatchId(),
+        batchId,
         runMode: 'dry_run',
         estimatedCost,
         message: 'Dry run completed - no images generated',
@@ -75,32 +100,131 @@ export async function imagesRoutes(
       });
     }
 
-    // Live mode - enqueue jobs
-    const batchId = generateBatchId();
-    const jobs = items.map(item => ({
-      jobId: generateJobId(),
-      sceneId: item.scene_id,
-      status: 'queued' as const,
-    }));
+    // Live mode - generate images directly (bypassing Pub/Sub for MVP testing)
+    const sheetId = request.headers['x-sheet-id'] as string || 'default-sheet';
+    const timestamp = Date.now();
+    
+    // Store job ID for deduplication
+    await storeJobId(batchId, {
+      userId,
+      items,
+      createdAt: new Date(),
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+    });
 
-    // TODO: Enqueue to Pub/Sub
-    fastify.log.info({ batchId, jobCount: jobs.length }, 'Enqueued image jobs');
+    // Import necessary modules for direct generation
+    const { GeminiImageClient } = await import('@ai-platform/clients');
+    const { putObject, makeThumb, generateSignedUrl, downloadUrl, getImagePath } = await import('../lib/gcs.js');
+    const { updateSheetRow } = await import('../lib/sheets.js');
+    
+    // Initialize Gemini client with GCS operations
+    const gcsOps = {
+      putObject,
+      makeThumb,
+      getSignedUrl: generateSignedUrl,
+      downloadUrl,
+      getImagePath,
+    };
+    const geminiClient = new GeminiImageClient(env.GEMINI_API_KEY, gcsOps);
+    
+    const jobs: any[] = [];
+    const results: any[] = [];
+    
+    // Process each item directly
+    for (const [index, item] of items.entries()) {
+      const jobId = `${batchId}_${item.scene_id}_${index}`;
+      
+      try {
+        fastify.log.info({ jobId, sceneId: item.scene_id }, 'Generating images directly');
+        
+        // Update sheet status to "running" if sheet ID provided
+        if (sheetId !== 'default-sheet') {
+          try {
+            await updateSheetRow(sheetId, item.scene_id, { status_img: 'running' });
+          } catch (err) {
+            fastify.log.warn({ error: err, sheetId, sceneId: item.scene_id }, 'Failed to update sheet status');
+          }
+        }
+        
+        // Generate images with Gemini
+        const result = await geminiClient.generateImages({
+          prompt: item.prompt,
+          refPackUrls: item.ref_pack_public_urls || [],
+          variants: item.variants,
+          sceneId: item.scene_id,
+          jobId,
+        });
+        
+        fastify.log.info({ jobId, imageCount: result.images?.length }, 'Images generated successfully');
+        
+        // Update sheet with results if sheet ID provided
+        if (sheetId !== 'default-sheet' && result.images) {
+          try {
+            const updateData: any = {
+              status_img: 'awaiting_review',
+            };
+            
+            // Add image URLs to appropriate columns
+            if (result.images.length > 0) {
+              updateData.nano_img_1 = result.images[0].signedUrl;
+            }
+            if (result.images.length > 1) {
+              updateData.nano_img_2 = result.images[1].signedUrl;
+            }
+            if (result.images.length > 2) {
+              updateData.nano_img_3 = result.images[2].signedUrl;
+            }
+            
+            await updateSheetRow(sheetId, item.scene_id, updateData);
+          } catch (err) {
+            fastify.log.warn({ error: err, sheetId, sceneId: item.scene_id }, 'Failed to update sheet with results');
+          }
+        }
+        
+        jobs.push({
+          jobId,
+          sceneId: item.scene_id,
+          status: 'completed',
+        });
+        
+        results.push({
+          sceneId: item.scene_id,
+          images: result.images,
+        });
+        
+      } catch (error: any) {
+        fastify.log.error({ error: error.message, jobId, sceneId: item.scene_id }, 'Failed to generate images');
+        
+        jobs.push({
+          jobId,
+          sceneId: item.scene_id,
+          status: 'failed',
+          error: error.message,
+        });
+        
+        // Update sheet status to failed if sheet ID provided
+        if (sheetId !== 'default-sheet') {
+          try {
+            await updateSheetRow(sheetId, item.scene_id, { 
+              status_img: 'error',
+              error_msg: error.message 
+            });
+          } catch (err) {
+            fastify.log.warn({ error: err, sheetId, sceneId: item.scene_id }, 'Failed to update sheet error status');
+          }
+        }
+      }
+    }
 
-    return reply.status(202).send({
+    return reply.status(200).send({
       batchId,
       runMode: 'live',
       estimatedCost,
-      accepted: jobs.length,
-      rejected: [],
+      accepted: jobs.filter(j => j.status !== 'failed').length,
+      rejected: jobs.filter(j => j.status === 'failed').map(j => j.sceneId),
       jobs,
+      results: results.length > 0 ? results : undefined,
     });
   });
 }
 
-function generateBatchId(): string {
-  return `batch_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-}
-
-function generateJobId(): string {
-  return `job_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-}

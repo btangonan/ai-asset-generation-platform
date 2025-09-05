@@ -1,10 +1,16 @@
-# Quality Control Checklist
+# QC Checklist - Image-Only MVP Verification
 
-Comprehensive testing guide to ensure the AI asset generation platform works correctly before and after deployments.
+**Date**: 2025-01-09  
+**Version**: 1.0.0  
+**Service**: AI Asset Orchestrator  
 
-## 🎯 Overview
+## Test Environment Setup
 
-This checklist covers functional testing, integration testing, and user acceptance testing for both Phase 1 (images) and Phase 2 (videos) features.
+```bash
+export API_BASE=http://localhost:9090
+export GCS_BUCKET=solid-study-467023-i3-ai-assets
+export PROJECT_ID=solid-study-467023-i3
+```
 
 ## ⚙️ Pre-Deployment Testing
 
