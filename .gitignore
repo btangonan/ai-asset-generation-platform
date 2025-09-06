@@ -63,6 +63,6 @@ app.yaml.local
 logs/
 *.log
 
-# Package manager locks (keep package-lock.json for npm)
+# Package manager locks (keep pnpm-lock.yaml for reproducible builds)
 yarn.lock
-pnpm-lock.yaml
+# pnpm-lock.yaml  # Keep this for container builds
