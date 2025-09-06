@@ -1,0 +1,4 @@
+scene_id,prompt,ref_pack_id,ref_pack_public_url,variants,status_img,nano_img_1,nano_img_2,nano_img_3,job_id,error_msg,cost,approved_image_url,status_video
+TEST-001,A warm cinematic kitchen scene with morning sunlight streaming through windows,REF-001,https://storage.googleapis.com/solid-study-467023-i3-ai-assets/ref_packs/test/sample.png,3,queued,,,,,,,ready_to_queue
+TEST-002,Modern living room with cozy afternoon lighting and plants,REF-002,https://storage.googleapis.com/solid-study-467023-i3-ai-assets/ref_packs/test/living-room.png,2,queued,,,,,,,ready_to_queue
+TEST-003,Elegant bedroom with soft evening ambiance,REF-003,https://storage.googleapis.com/solid-study-467023-i3-ai-assets/ref_packs/test/bedroom.png,1,queued,,,,,,,ready_to_queue

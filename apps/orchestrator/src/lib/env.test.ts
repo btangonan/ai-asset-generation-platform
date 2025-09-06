@@ -4,7 +4,7 @@ import { z } from 'zod';
 // Import the schema directly for testing
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  PORT: z.coerce.number().default(8080),
+  PORT: z.coerce.number().default(9090),
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error']).default('info'),
   
   // Google Cloud
@@ -46,7 +46,7 @@ describe('Environment Configuration', () => {
     
     const env = envSchema.parse(testEnv);
     
-    expect(env.PORT).toBe(8080);
+    expect(env.PORT).toBe(9090);
     expect(env.LOG_LEVEL).toBe('info');
     expect(env.RUN_MODE).toBe('dry_run');
     expect(env.MAX_ROWS_PER_BATCH).toBe(10);

@@ -791,7 +791,7 @@ Provide:
 
 `## Quick Start`  
 `- Install: pnpm i && pnpm -w build`  
-`- Run local API: pnpm -w dev (PORT=8080)`  
+`- Run local API: pnpm -w dev (PORT=9090)`  
 `- Test: pnpm -w test`  
 `- Deploy: gcloud builds submit; gcloud run deploy ...`
 

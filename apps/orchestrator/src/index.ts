@@ -1,6 +1,11 @@
-// Load environment variables first
+// Load environment variables first (development only)
 import dotenv from 'dotenv';
-dotenv.config({ path: '.env.local' });
+import { existsSync } from 'fs';
+
+// Only load .env.local in development
+if (existsSync('.env.local')) {
+  dotenv.config({ path: '.env.local' });
+}
 
 import Fastify from 'fastify';
 import helmet from '@fastify/helmet';

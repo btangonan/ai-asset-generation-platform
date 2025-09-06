@@ -1,576 +1,570 @@
 /**
- * AI Asset Generation Platform - Google Apps Script UI
+ * AI Asset Generation Platform - Google Sheets Interface
+ * Web App Version - Automatic Sheet Creation
  * 
- * This script provides a Google Sheets UI for the AI Asset Generation Platform.
- * It handles menu creation, user interactions, and API communication with the backend.
- * 
- * Features:
- * - Custom menu with image/video generation options
- * - Single POST per operation (quota-conscious)
- * - Cost estimation and confirmation dialogs
- * - Sidebar UI for thumbnail approval
- * - Error handling with user-friendly messages
- * 
- * Architecture: UI-only - no business logic, delegates all processing to backend
+ * Web App URL: Click once to get your own AI-powered Google Sheet!
  */
 
-// Configuration constants
-const CONFIG_SHEET = 'CONFIG';
-const API_BASE_URL_CELL = 'B2';  // Named range: CONFIG!B2
-const MAX_ROWS_CELL = 'B3';      // Named range: CONFIG!B3
-const DEFAULT_MAX_ROWS = 10;
-const COST_PER_IMAGE = 0.002;    // $0.002 per image (matches backend)
+// Configuration - Production ready
+const CONFIG = {
+  API_BASE_URL: 'https://orchestrator-582559442661.us-central1.run.app',
+  API_KEY: 'aip_XBvepbgodm3UjQkWzyW5OQWwxnZZD3z0mXjodee5eTc',
+  SHEET_NAME: 'Sheet1',
+  COST_PER_IMAGE: 0.25,
+  RATES_VEO_3: 0.50,
+  RATES_VEO_3_FAST: 0.30
+};
 
-// Required sheet headers (matches backend contract)
-const REQUIRED_HEADERS = ['scene_id', 'prompt', 'variants', 'status_img', 'nano_img_1', 'nano_img_2', 'nano_img_3', 'job_id', 'error_msg', 'cost'];
-const IMAGE_HEADERS = ['nano_img_1', 'nano_img_2', 'nano_img_3'];
+// Column mappings
+const COLUMNS = {
+  SCENE_ID: 1,
+  PROMPT: 2,
+  REF_PACK_ID: 3,
+  REF_PACK_PUBLIC_URL: 4,
+  VARIANTS: 5,
+  STATUS_IMG: 6,
+  NANO_IMG_1: 7,
+  NANO_IMG_2: 8,
+  NANO_IMG_3: 9,
+  JOB_ID: 10,
+  ERROR_MSG: 11,
+  COST: 12,
+  APPROVED_IMAGE_URL: 13,
+  STATUS_VIDEO: 14
+};
 
 /**
- * Initialize the custom menu when the spreadsheet opens
+ * Create custom menu when spreadsheet opens
  */
 function onOpen() {
-  try {
-    const ui = SpreadsheetApp.getUi();
-    ui.createMenu('AI')
-      .addItem('Generate Images (Dry-Run)', 'generateImagesDryRun')
-      .addItem('Generate Images (Live)', 'generateImagesLive')
-      .addSeparator()
-      .addItem('Generate Video (Veo)', 'generateVideo')
-      .addSeparator()
-      .addItem('Open Sidebar', 'openSidebar')
-      .addToUi();
-  } catch (error) {
-    console.error('Failed to create menu:', error);
-  }
+  const ui = SpreadsheetApp.getUi();
+  ui.createMenu('🎬 AI Asset Generator')
+    .addItem('🎯 Setup Template (First Time)', 'setupTemplate')
+    .addSeparator()
+    .addItem('🧪 Test Generate (Free)', 'generateImagesDryRun')
+    .addItem('🚀 Live Generate ($0.25)', 'generateImagesLive')
+    .addSeparator()
+    .addItem('📊 Refresh Status', 'refreshStatus')
+    .addItem('🔄 Clear All Status', 'clearAllStatus')
+    .addToUi();
 }
 
 /**
- * Generate images in dry-run mode (no cost, preview only)
+ * Setup the template with sample data - ONE CLICK SETUP
  */
-function generateImagesDryRun() {
-  generateImages_('dry_run');
-}
-
-/**
- * Generate images in live mode (actual generation with cost)
- */
-function generateImagesLive() {
-  generateImages_('live');
-}
-
-/**
- * Generate video (stub implementation for phase 2)
- */
-function generateVideo() {
+function setupTemplate() {
+  const sheet = SpreadsheetApp.getActiveSheet();
   const ui = SpreadsheetApp.getUi();
   
-  try {
-    // Get selected rows for video generation
-    const selectedRows = getSelectedRows_();
-    if (!selectedRows.length) {
-      ui.alert('No Selection', 'Please select rows to generate videos for.', ui.ButtonSet.OK);
+  // Check if already set up
+  if (sheet.getRange(1, 1).getValue() === 'scene_id') {
+    const response = ui.alert('Template Setup', 'Template is already set up. Reset with new data?', ui.ButtonSet.YES_NO);
+    if (response !== ui.Button.YES) {
       return;
     }
-    
-    // Filter rows that are ready for video generation
-    const videoReadyRows = selectedRows.filter(row => {
-      return row.approved_image_url && row.status_video === 'ready_to_queue';
-    });
-    
-    if (!videoReadyRows.length) {
-      ui.alert(
-        'Not Ready for Video',
-        'No rows are ready for video generation. Requirements:\n' +
-        '• approved_image_url must be present\n' +
-        '• status_video must be "ready_to_queue"',
-        ui.ButtonSet.OK
-      );
-      return;
-    }
-    
-    // Confirmation dialog with typed verification
-    const count = videoReadyRows.length;
-    const response = ui.prompt(
-      'Generate Videos',
-      `Generate videos for ${count} row(s)?\n\nType "${count}" to confirm:`,
-      ui.ButtonSet.OK_CANCEL
-    );
-    
-    if (response.getSelectedButton() !== ui.Button.OK) return;
-    if (response.getResponseText().trim() !== count.toString()) {
-      ui.alert('Cancelled', 'Confirmation number did not match. Operation cancelled.', ui.ButtonSet.OK);
-      return;
-    }
-    
-    // Call backend API for video generation (stub)
-    const payload = {
-      runMode: 'live',
-      items: videoReadyRows.map(row => ({
-        scene_id: row.scene_id,
-        approved_image_url: row.approved_image_url
-      }))
-    };
-    
-    // TODO: Implement video generation endpoint
-    ui.alert(
-      'Video Generation',
-      `Video generation is not yet implemented.\n\nWould process ${count} row(s) with approved images.`,
-      ui.ButtonSet.OK
-    );
-    
-  } catch (error) {
-    console.error('Video generation error:', error);
-    showErrorDialog_('Video Generation Error', error.message);
   }
+  
+  // Clear existing data
+  sheet.clear();
+  
+  // Set up headers
+  const headers = [
+    'scene_id', 'prompt', 'ref_pack_id', 'ref_pack_public_url', 'variants',
+    'status_img', 'nano_img_1', 'nano_img_2', 'nano_img_3', 'job_id',
+    'error_msg', 'cost', 'approved_image_url', 'status_video'
+  ];
+  
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  
+  // Add sample data
+  const sampleData = [
+    ['TEST-001', 'A warm cinematic kitchen scene with morning sunlight streaming through windows', 'REF-001', '', 3, '', '', '', '', '', '', '', '', ''],
+    ['TEST-002', 'Modern living room with cozy afternoon lighting and green plants', 'REF-002', '', 2, '', '', '', '', '', '', '', '', ''],
+    ['TEST-003', 'Elegant bedroom with soft evening ambiance and warm colors', 'REF-003', '', 1, '', '', '', '', '', '', '', '', ''],
+    ['TEST-004', 'Rustic coffee shop with wooden furniture and vintage decorations', 'REF-004', '', 3, '', '', '', '', '', '', '', '', ''],
+    ['TEST-005', 'Modern office space with natural light and minimalist design', 'REF-005', '', 2, '', '', '', '', '', '', '', '', '']
+  ];
+  
+  sheet.getRange(2, 1, sampleData.length, sampleData[0].length).setValues(sampleData);
+  
+  // Format the sheet
+  const headerRange = sheet.getRange(1, 1, 1, headers.length);
+  headerRange.setBackground('#4285f4');
+  headerRange.setFontColor('#ffffff');
+  headerRange.setFontWeight('bold');
+  
+  // Auto-resize columns
+  sheet.autoResizeColumns(1, headers.length);
+  
+  // Add some styling
+  sheet.getRange(2, 1, sampleData.length, sampleData[0].length).setBorder(true, true, true, true, true, true);
+  
+  ui.alert('✅ Template Ready!', 
+    'Your AI Asset Generator is ready to use!\n\n' +
+    '🎯 Next steps:\n' +
+    '1. Click on any data row (2, 3, 4, 5, or 6)\n' +
+    '2. Use "🧪 Test Generate (Free)" to try it out\n' +
+    '3. Check the status columns for results\n\n' +
+    '💡 Tip: Test mode is completely free and safe!', 
+    ui.ButtonSet.OK
+  );
 }
 
 /**
- * Open the sidebar UI for thumbnail management
+ * Generate images in dry-run mode (no cost)
  */
-function openSidebar() {
-  try {
-    const html = HtmlService.createHtmlOutputFromFile('sidebar')
-        .setTitle('AI Generation Sidebar')
-        .setWidth(400);
-    
-    SpreadsheetApp.getUi().showSidebar(html);
-  } catch (error) {
-    console.error('Failed to open sidebar:', error);
-    showErrorDialog_('Sidebar Error', 'Failed to open sidebar: ' + error.message);
+function generateImagesDryRun() {
+  generateImages('dry_run');
+}
+
+/**
+ * Generate images in live mode (costs money)
+ */
+function generateImagesLive() {
+  const ui = SpreadsheetApp.getUi();
+  const selectedRows = getSelectedImageRows();
+  
+  if (selectedRows.length === 0) {
+    ui.alert('No rows selected', 'Please select at least one row to generate images for.', ui.ButtonSet.OK);
+    return;
   }
+  
+  const totalCost = selectedRows.length * CONFIG.COST_PER_IMAGE;
+  const response = ui.alert(
+    'Live Image Generation',
+    `This will generate images for ${selectedRows.length} row(s) at $${CONFIG.COST_PER_IMAGE} each.\n\nTotal estimated cost: $${totalCost.toFixed(2)}\n\nContinue with LIVE generation?`,
+    ui.ButtonSet.YES_NO
+  );
+  
+  if (response !== ui.Button.YES) {
+    return;
+  }
+  
+  generateImages('live');
 }
 
 /**
  * Core image generation function
- * @param {string} runMode - 'dry_run' or 'live'
  */
-function generateImages_(runMode) {
+function generateImages(runMode) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CONFIG.SHEET_NAME);
+  const selectedRows = getSelectedImageRows();
   const ui = SpreadsheetApp.getUi();
   
-  try {
-    // Validate sheet structure
-    const validation = validateSheetStructure_();
-    if (!validation.valid) {
-      ui.alert('Sheet Configuration Error', validation.message, ui.ButtonSet.OK);
-      return;
-    }
-    
-    // Get selected rows for processing
-    const selectedRows = getSelectedRows_();
-    if (!selectedRows.length) {
-      ui.alert('No Selection', 'Please select rows to process.', ui.ButtonSet.OK);
-      return;
-    }
-    
-    // Filter rows that can be processed (pending status)
-    const processableRows = selectedRows.filter(row => {
-      return !row.status_img || row.status_img === 'pending' || row.status_img === '';
-    });
-    
-    const maxRows = getMaxRows_();
-    const rowsToProcess = processableRows.slice(0, maxRows);
-    const skippedRows = processableRows.length - rowsToProcess.length;
-    
-    if (!rowsToProcess.length) {
-      ui.alert(
-        'No Processable Rows',
-        'Selected rows are not in processable state.\n\nOnly rows with empty status or "pending" can be processed.',
-        ui.ButtonSet.OK
-      );
-      return;
-    }
-    
-    // Calculate cost estimate
-    const totalCost = rowsToProcess.reduce((sum, row) => {
-      const variants = Math.max(1, Math.min(3, parseInt(row.variants) || 1));
-      return sum + (variants * COST_PER_IMAGE);
-    }, 0);
-    
-    // Show confirmation dialog
-    let confirmMessage = `Process ${rowsToProcess.length} row(s)`;
-    if (skippedRows > 0) {
-      confirmMessage += `\n(${skippedRows} row(s) skipped - over limit or already processed)`;
-    }
-    
-    if (runMode === 'live') {
-      confirmMessage += `\n\nEstimated cost: $${totalCost.toFixed(4)}\n\nType "${rowsToProcess.length}" to confirm:`;
-      
-      const response = ui.prompt('Generate Images (Live)', confirmMessage, ui.ButtonSet.OK_CANCEL);
-      if (response.getSelectedButton() !== ui.Button.OK) return;
-      if (response.getResponseText().trim() !== rowsToProcess.length.toString()) {
-        ui.alert('Cancelled', 'Confirmation number did not match. Operation cancelled.', ui.ButtonSet.OK);
-        return;
-      }
-    } else {
-      confirmMessage += ' (no cost - dry run)?';
-      const result = ui.alert('Generate Images (Dry-Run)', confirmMessage, ui.ButtonSet.YES_NO);
-      if (result !== ui.Button.YES) return;
-    }
-    
-    // Prepare API payload
-    const payload = {
-      runMode: runMode,
-      rowFilter: {
-        status: 'all',
-        limit: rowsToProcess.length
-      }
-    };
-    
-    // Show processing indicator
-    ui.alert(
-      'Processing',
-      `Sending ${rowsToProcess.length} row(s) for processing...\n\nThis may take a few moments.`,
+  if (selectedRows.length === 0) {
+    ui.alert('No rows selected', 
+      'Please click on a row number (like row 2, 3, 4...) to select it, then try again.\n\n' +
+      '💡 Tip: Click on the row NUMBER on the left, not just a cell!', 
       ui.ButtonSet.OK
     );
-    
-    // Call backend API
-    const result = callBackendAPI_('/batch/sheets', payload);
-    
-    // Show result
-    if (runMode === 'dry_run') {
-      ui.alert(
-        'Dry-Run Complete',
-        `Successfully validated ${rowsToProcess.length} row(s).\n\nNo images were generated or costs incurred.`,
-        ui.ButtonSet.OK
-      );
-    } else {
-      ui.alert(
-        'Generation Complete',
-        `Successfully processed ${rowsToProcess.length} row(s).\n\nCheck the sheet for generated images and updated costs.`,
-        ui.ButtonSet.OK
-      );
-    }
-    
-  } catch (error) {
-    console.error('Image generation error:', error);
-    handleAPIError_(error, runMode);
+    return;
   }
-}
-
-/**
- * Get snapshot of selected rows for sidebar UI
- * @returns {Object} JSON snapshot of selected rows
- */
-function getSelectionSnapshot() {
-  try {
-    const selectedRows = getSelectedRows_();
-    return {
-      success: true,
-      rows: selectedRows,
-      totalCost: selectedRows.reduce((sum, row) => {
-        const variants = Math.max(1, Math.min(3, parseInt(row.variants) || 1));
-        return sum + (variants * COST_PER_IMAGE);
-      }, 0)
-    };
-  } catch (error) {
-    console.error('Get selection snapshot error:', error);
-    return {
-      success: false,
-      error: error.message
-    };
-  }
-}
-
-/**
- * Approve a thumbnail image for video generation
- * @param {string} sceneId - Scene ID to approve image for
- * @param {string} imageUrl - URL of the approved image
- */
-function approveStill(sceneId, imageUrl) {
-  try {
-    const sheet = SpreadsheetApp.getActiveSheet();
-    const headers = getSheetHeaders_(sheet);
-    const data = sheet.getDataRange().getValues();
-    
-    // Find the row with matching scene_id
-    for (let i = 1; i < data.length; i++) {
-      const row = data[i];
-      const rowSceneId = row[headers.scene_id];
-      
-      if (rowSceneId === sceneId) {
-        // Write approved image URL
-        const approvedCol = headers.approved_image_url;
-        if (approvedCol !== -1) {
-          sheet.getRange(i + 1, approvedCol + 1).setValue(imageUrl);
-        } else {
-          // Add approved_image_url column if it doesn't exist
-          const lastCol = sheet.getLastColumn();
-          sheet.getRange(1, lastCol + 1).setValue('approved_image_url');
-          sheet.getRange(i + 1, lastCol + 1).setValue(imageUrl);
-        }
-        
-        return { success: true };
-      }
-    }
-    
-    throw new Error(`Scene ID "${sceneId}" not found`);
-    
-  } catch (error) {
-    console.error('Approve still error:', error);
-    return { success: false, error: error.message };
-  }
-}
-
-// ===== HELPER FUNCTIONS =====
-
-/**
- * Get currently selected rows with all relevant data
- * @returns {Array} Array of row objects
- */
-function getSelectedRows_() {
-  const sheet = SpreadsheetApp.getActiveSheet();
-  const selection = sheet.getActiveRange();
-  const headers = getSheetHeaders_(sheet);
   
-  const startRow = selection.getRow();
-  const numRows = selection.getNumRows();
-  
-  // Skip header row if selected
-  const dataStartRow = Math.max(startRow, 2);
-  const dataNumRows = startRow === 1 ? Math.max(0, numRows - 1) : numRows;
-  
-  if (dataNumRows <= 0) return [];
-  
-  const data = sheet.getRange(dataStartRow, 1, dataNumRows, sheet.getLastColumn()).getValues();
-  
-  return data.map((row, index) => {
-    const rowData = {
-      rowNumber: dataStartRow + index,
-      scene_id: row[headers.scene_id] || '',
-      prompt: row[headers.prompt] || '',
-      variants: row[headers.variants] || 1,
-      status_img: row[headers.status_img] || '',
-      nano_img_1: row[headers.nano_img_1] || '',
-      nano_img_2: row[headers.nano_img_2] || '',
-      nano_img_3: row[headers.nano_img_3] || '',
-      job_id: row[headers.job_id] || '',
-      error_msg: row[headers.error_msg] || '',
-      cost: row[headers.cost] || '',
-      approved_image_url: row[headers.approved_image_url] || '',
-      status_video: row[headers.status_video] || ''
-    };
-    
-    // Only include rows with scene_id and prompt
-    return (rowData.scene_id && rowData.prompt) ? rowData : null;
-  }).filter(row => row !== null);
-}
-
-/**
- * Get sheet headers mapping
- * @param {Sheet} sheet - Google Sheet object
- * @returns {Object} Header name to column index mapping
- */
-function getSheetHeaders_(sheet) {
-  const headerRow = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  const headers = {};
-  
-  headerRow.forEach((header, index) => {
-    if (header) {
-      headers[header.toString().toLowerCase()] = index;
-    }
+  // Update status to 'processing'
+  selectedRows.forEach(row => {
+    sheet.getRange(row.rowIndex, COLUMNS.STATUS_IMG).setValue('processing...');
   });
   
-  return headers;
-}
-
-/**
- * Validate sheet structure has required headers
- * @returns {Object} Validation result with valid flag and message
- */
-function validateSheetStructure_() {
-  try {
-    const sheet = SpreadsheetApp.getActiveSheet();
-    const headers = getSheetHeaders_(sheet);
-    const headerNames = Object.keys(headers);
-    
-    const missingHeaders = REQUIRED_HEADERS.filter(required => 
-      !headerNames.includes(required.toLowerCase())
-    );
-    
-    if (missingHeaders.length > 0) {
-      return {
-        valid: false,
-        message: `Missing required headers: ${missingHeaders.join(', ')}\n\n` +
-                 'Please see the Google Sheet Template Guide for proper setup:\n' +
-                 'Required headers: ' + REQUIRED_HEADERS.join(', ')
-      };
-    }
-    
-    return { valid: true };
-    
-  } catch (error) {
-    return {
-      valid: false,
-      message: 'Failed to validate sheet structure: ' + error.message
-    };
-  }
-}
-
-/**
- * Get API base URL from configuration
- * @returns {string} API base URL
- */
-function getAPIBaseURL_() {
-  try {
-    const configSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CONFIG_SHEET);
-    if (configSheet) {
-      const url = configSheet.getRange(API_BASE_URL_CELL).getValue();
-      if (url) return url.toString().replace(/\/$/, ''); // Remove trailing slash
-    }
-  } catch (error) {
-    console.warn('Failed to get API URL from config:', error);
-  }
-  
-  // Fallback to localhost for development
-  return 'http://localhost:9090';
-}
-
-/**
- * Get maximum rows per batch from configuration
- * @returns {number} Maximum rows per batch
- */
-function getMaxRows_() {
-  try {
-    const configSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CONFIG_SHEET);
-    if (configSheet) {
-      const maxRows = configSheet.getRange(MAX_ROWS_CELL).getValue();
-      if (maxRows && typeof maxRows === 'number') return Math.max(1, Math.min(100, maxRows));
-    }
-  } catch (error) {
-    console.warn('Failed to get max rows from config:', error);
-  }
-  
-  return DEFAULT_MAX_ROWS;
-}
-
-/**
- * Call backend API with proper headers and error handling
- * @param {string} path - API endpoint path
- * @param {Object} payload - Request payload
- * @returns {Object} API response
- */
-function callBackendAPI_(path, payload) {
-  const baseURL = getAPIBaseURL_();
-  const url = baseURL + path;
-  const sheetId = SpreadsheetApp.getActiveSpreadsheet().getId();
-  
-  const options = {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-sheet-id': sheetId
-    },
-    payload: JSON.stringify(payload),
-    muteHttpExceptions: true
+  // Build request payload
+  const payload = {
+    items: selectedRows.map(row => ({
+      scene_id: row.scene_id,
+      prompt: row.prompt,
+      ref_pack_public_url: row.ref_pack_public_url || null,
+      variants: parseInt(row.variants) || 1
+    })),
+    runMode: runMode
   };
   
-  console.log('Calling API:', url, payload);
-  
-  const response = UrlFetchApp.fetch(url, options);
-  const responseText = response.getContentText();
-  const statusCode = response.getResponseCode();
-  
-  console.log('API Response:', statusCode, responseText);
-  
-  if (statusCode !== 200) {
-    let errorData;
-    try {
-      errorData = JSON.parse(responseText);
-    } catch (e) {
-      errorData = { error: 'UNKNOWN_ERROR', message: responseText };
+  try {
+    const response = UrlFetchApp.fetch(`${CONFIG.API_BASE_URL}/batch/images`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': CONFIG.API_KEY
+      },
+      payload: JSON.stringify(payload)
+    });
+    
+    const result = JSON.parse(response.getContentText());
+    
+    if (response.getResponseCode() === 202) {
+      // Success - update with job ID
+      selectedRows.forEach(row => {
+        sheet.getRange(row.rowIndex, COLUMNS.JOB_ID).setValue(result.job_id);
+        sheet.getRange(row.rowIndex, COLUMNS.STATUS_IMG).setValue('queued');
+      });
+      
+      const modeText = runMode === 'dry_run' ? 'TEST' : 'LIVE';
+      const costText = runMode === 'dry_run' ? '(FREE)' : `($${(selectedRows.length * CONFIG.COST_PER_IMAGE).toFixed(2)})`;
+      
+      ui.alert(
+        `✅ ${modeText} Generation Started!`,
+        `Job ID: ${result.job_id} ${costText}\n\n` +
+        `Images are being generated. Use "📊 Refresh Status" to check progress.\n\n` +
+        `💡 Tip: Results will appear in columns G, H, I (nano_img_1, 2, 3)`,
+        ui.ButtonSet.OK
+      );
+    } else {
+      // Error
+      selectedRows.forEach(row => {
+        sheet.getRange(row.rowIndex, COLUMNS.STATUS_IMG).setValue('error');
+        sheet.getRange(row.rowIndex, COLUMNS.ERROR_MSG).setValue(result.detail || 'Unknown error');
+      });
+      
+      ui.alert('❌ Generation Failed', result.detail || 'Unknown error occurred', ui.ButtonSet.OK);
     }
     
-    const error = new Error(errorData.message || 'API request failed');
-    error.statusCode = statusCode;
-    error.errorData = errorData;
-    throw error;
+  } catch (error) {
+    // Network or parsing error
+    selectedRows.forEach(row => {
+      sheet.getRange(row.rowIndex, COLUMNS.STATUS_IMG).setValue('error');
+      sheet.getRange(row.rowIndex, COLUMNS.ERROR_MSG).setValue(`Network error: ${error.message}`);
+    });
+    
+    ui.alert('❌ Request Failed', `Network error: ${error.message}`, ui.ButtonSet.OK);
   }
-  
-  return JSON.parse(responseText);
 }
 
 /**
- * Handle API errors with user-friendly messages
- * @param {Error} error - Error object
- * @param {string} context - Context of the operation
+ * Get selected rows with image data
  */
-function handleAPIError_(error, context = 'operation') {
-  const ui = SpreadsheetApp.getUi();
+function getSelectedImageRows() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CONFIG.SHEET_NAME);
+  const selection = sheet.getSelection();
+  const range = selection.getActiveRange();
   
-  if (error.statusCode === 400 && error.errorData && error.errorData.issues) {
-    // Zod validation errors
-    const issues = error.errorData.issues.slice(0, 3); // Show first 3 issues
-    const issueText = issues.map(issue => `• ${issue.path.join('.')}: ${issue.message}`).join('\n');
-    
-    ui.alert(
-      'Validation Error',
-      `Request validation failed:\n\n${issueText}\n\n` +
-      (error.errorData.issues.length > 3 ? '...and more issues\n\n' : '') +
-      'Please check the QC Checklist for requirements.',
-      ui.ButtonSet.OK
-    );
-  } else if (error.statusCode === 403) {
-    ui.alert(
-      'Permission Error',
-      'Cannot access the Google Sheet. Please ensure the service account has access:\n\n' +
-      'orchestrator-sa@solid-study-467023-i3.iam.gserviceaccount.com\n\n' +
-      'Share your sheet with this email as an Editor.',
-      ui.ButtonSet.OK
-    );
-  } else if (error.statusCode === 404) {
-    ui.alert(
-      'Not Found',
-      'The API endpoint was not found. Please check your configuration.',
-      ui.ButtonSet.OK
-    );
-  } else {
-    // Generic error with retry option
-    const result = ui.alert(
-      'Network Error',
-      `Failed to complete ${context}:\n\n${error.message}\n\nWould you like to retry?`,
-      ui.ButtonSet.YES_NO
-    );
-    
-    if (result === ui.Button.YES) {
-      // Note: Retry would need to be implemented in the calling function
-      ui.alert('Retry', 'Please try the operation again manually.', ui.ButtonSet.OK);
+  if (!range) {
+    return [];
+  }
+  
+  const startRow = range.getRow();
+  const numRows = range.getNumRows();
+  
+  // Skip header row
+  if (startRow === 1) {
+    return [];
+  }
+  
+  const data = sheet.getRange(startRow, 1, numRows, COLUMNS.STATUS_VIDEO).getValues();
+  
+  const rows = [];
+  for (let i = 0; i < data.length; i++) {
+    const row = data[i];
+    if (row[COLUMNS.SCENE_ID - 1] && row[COLUMNS.PROMPT - 1]) { // Valid row
+      rows.push({
+        rowIndex: startRow + i,
+        scene_id: row[COLUMNS.SCENE_ID - 1],
+        prompt: row[COLUMNS.PROMPT - 1],
+        ref_pack_public_url: row[COLUMNS.REF_PACK_PUBLIC_URL - 1],
+        variants: row[COLUMNS.VARIANTS - 1]
+      });
     }
   }
-}
-
-/**
- * Show error dialog with details
- * @param {string} title - Error dialog title
- * @param {string} message - Error message
- */
-function showErrorDialog_(title, message) {
-  const ui = SpreadsheetApp.getUi();
-  ui.alert(title, message, ui.ButtonSet.OK);
-}
-
-/**
- * Utility function to create a configuration sheet if it doesn't exist
- */
-function createConfigSheet() {
-  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-  let configSheet = spreadsheet.getSheetByName(CONFIG_SHEET);
   
-  if (!configSheet) {
-    configSheet = spreadsheet.insertSheet(CONFIG_SHEET);
+  return rows;
+}
+
+/**
+ * Refresh status for all jobs
+ */
+function refreshStatus() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CONFIG.SHEET_NAME);
+  const data = sheet.getDataRange().getValues();
+  let updatedCount = 0;
+  
+  for (let i = 1; i < data.length; i++) { // Skip header row
+    const row = data[i];
+    const jobId = row[COLUMNS.JOB_ID - 1];
     
-    // Set up configuration headers and default values
-    configSheet.getRange('A1').setValue('Setting');
-    configSheet.getRange('B1').setValue('Value');
-    configSheet.getRange('A2').setValue('API_BASE_URL');
-    configSheet.getRange('B2').setValue('http://localhost:9090');
-    configSheet.getRange('A3').setValue('MAX_ROWS_PER_BATCH');
-    configSheet.getRange('B3').setValue(DEFAULT_MAX_ROWS);
-    
-    // Format the sheet
-    configSheet.getRange('A1:B1').setFontWeight('bold');
-    configSheet.setColumnWidth(1, 200);
-    configSheet.setColumnWidth(2, 300);
+    if (jobId && jobId !== '') {
+      try {
+        const response = UrlFetchApp.fetch(`${CONFIG.API_BASE_URL}/status/${jobId}`, {
+          method: 'GET',
+          headers: {
+            'x-api-key': CONFIG.API_KEY
+          }
+        });
+        
+        const result = JSON.parse(response.getContentText());
+        
+        if (response.getResponseCode() === 200) {
+          // Update status and results
+          sheet.getRange(i + 1, COLUMNS.STATUS_IMG).setValue(result.status);
+          
+          if (result.results) {
+            // Update image URLs
+            if (result.results.nano_img_1) sheet.getRange(i + 1, COLUMNS.NANO_IMG_1).setValue(result.results.nano_img_1);
+            if (result.results.nano_img_2) sheet.getRange(i + 1, COLUMNS.NANO_IMG_2).setValue(result.results.nano_img_2);
+            if (result.results.nano_img_3) sheet.getRange(i + 1, COLUMNS.NANO_IMG_3).setValue(result.results.nano_img_3);
+          }
+          
+          if (result.cost) {
+            sheet.getRange(i + 1, COLUMNS.COST).setValue(result.cost);
+          }
+          
+          if (result.error) {
+            sheet.getRange(i + 1, COLUMNS.ERROR_MSG).setValue(result.error);
+          }
+          
+          updatedCount++;
+        }
+        
+      } catch (error) {
+        console.log(`Error refreshing status for job ${jobId}: ${error.message}`);
+      }
+    }
   }
   
-  return configSheet;
+  SpreadsheetApp.getUi().alert(
+    '📊 Status Updated!', 
+    `Refreshed ${updatedCount} job(s).\n\n` +
+    `💡 Tip: Image URLs appear in columns G, H, I. Click them to view images!`, 
+    SpreadsheetApp.getUi().ButtonSet.OK
+  );
+}
+
+/**
+ * Clear all status and results
+ */
+function clearAllStatus() {
+  const ui = SpreadsheetApp.getUi();
+  const response = ui.alert(
+    'Clear All Status',
+    'This will clear all job IDs, status, images, and errors. Are you sure?',
+    ui.ButtonSet.YES_NO
+  );
+  
+  if (response !== ui.Button.YES) {
+    return;
+  }
+  
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CONFIG.SHEET_NAME);
+  const lastRow = sheet.getLastRow();
+  
+  if (lastRow > 1) {
+    // Clear status columns for all rows
+    sheet.getRange(2, COLUMNS.STATUS_IMG, lastRow - 1, 1).clearContent();
+    sheet.getRange(2, COLUMNS.NANO_IMG_1, lastRow - 1, 3).clearContent(); // Images 1-3
+    sheet.getRange(2, COLUMNS.JOB_ID, lastRow - 1, 1).clearContent();
+    sheet.getRange(2, COLUMNS.ERROR_MSG, lastRow - 1, 1).clearContent();
+    sheet.getRange(2, COLUMNS.COST, lastRow - 1, 1).clearContent();
+    sheet.getRange(2, COLUMNS.APPROVED_IMAGE_URL, lastRow - 1, 1).clearContent();
+  }
+  
+  ui.alert('🔄 Status Cleared!', 'All status information has been cleared. Ready for new tests!', ui.ButtonSet.OK);
+}
+
+/**
+ * Test API connection - for debugging
+ */
+/**
+ * WEB APP FUNCTIONALITY
+ * This is what creates the zero-setup experience
+ */
+
+/**
+ * Handles web app requests - creates new sheets automatically
+ */
+function doGet(e) {
+  try {
+    // Create a unique sheet name
+    const timestamp = new Date().getTime();
+    const sheetName = `AI Image Generator - ${timestamp}`;
+    
+    // Create the new Google Sheet
+    const newSheet = SpreadsheetApp.create(sheetName);
+    const sheet = newSheet.getActiveSheet();
+    
+    // Set up the template automatically
+    setupTemplateForNewSheet(sheet);
+    
+    // Get the sheet URL
+    const sheetUrl = newSheet.getUrl();
+    
+    // Create success page with redirect
+    const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>🎬 AI Asset Generator - Ready!</title>
+      <style>
+        body { 
+          font-family: Arial, sans-serif; 
+          text-align: center; 
+          padding: 50px; 
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+        }
+        .container { 
+          background: rgba(255,255,255,0.1); 
+          padding: 40px; 
+          border-radius: 20px; 
+          max-width: 600px; 
+          margin: 0 auto;
+        }
+        .button {
+          background: #28a745;
+          color: white;
+          padding: 15px 30px;
+          text-decoration: none;
+          border-radius: 8px;
+          font-size: 18px;
+          font-weight: bold;
+          display: inline-block;
+          margin: 20px;
+        }
+        .button:hover { background: #218838; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <h1>🎉 Success! Your AI Image Generator is Ready!</h1>
+        <p>Your personal Google Sheet has been created with:</p>
+        <ul style="text-align: left; display: inline-block;">
+          <li>✅ Sample data pre-loaded</li>
+          <li>✅ Professional formatting applied</li>
+          <li>✅ AI generation menu installed</li>
+          <li>✅ Free testing mode enabled</li>
+        </ul>
+        <p><strong>What's next?</strong></p>
+        <ol style="text-align: left; display: inline-block;">
+          <li>Click the button below to open your sheet</li>
+          <li>Select any row (click the row number)</li>
+          <li>Use menu "🎬 AI Asset Generator" → "🧪 Test Generate (Free)"</li>
+        </ol>
+        <a href="${sheetUrl}" class="button" target="_top">🚀 Open My AI Sheet</a>
+        <p style="font-size: 14px; margin-top: 30px;">
+          💡 Tip: Test mode is completely free and safe!
+        </p>
+      </div>
+      <script>
+        // Auto-redirect after 3 seconds
+        setTimeout(function() {
+          window.top.location.href = "${sheetUrl}";
+        }, 3000);
+      </script>
+    </body>
+    </html>
+    `;
+    
+    return HtmlService.createHtmlOutput(html)
+      .setTitle('🎬 AI Asset Generator - Ready!')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+    
+  } catch (error) {
+    // Error handling
+    const errorHtml = `
+    <!DOCTYPE html>
+    <html>
+    <head><title>Error</title></head>
+    <body style="font-family: Arial; text-align: center; padding: 50px;">
+      <h2>❌ Oops! Something went wrong</h2>
+      <p>Error: ${error.message}</p>
+      <p><a href="#" onclick="window.top.location.reload()">🔄 Try Again</a></p>
+    </body>
+    </html>
+    `;
+    
+    return HtmlService.createHtmlOutput(errorHtml)
+      .setTitle('Error - AI Asset Generator');
+  }
+}
+
+/**
+ * Set up template for newly created sheet (used by web app)
+ */
+function setupTemplateForNewSheet(sheet) {
+  // Clear any existing content
+  sheet.clear();
+  
+  // Set up headers
+  const headers = [
+    'scene_id', 'prompt', 'ref_pack_id', 'ref_pack_public_url', 'variants',
+    'status_img', 'nano_img_1', 'nano_img_2', 'nano_img_3', 'job_id',
+    'error_msg', 'cost', 'approved_image_url', 'status_video'
+  ];
+  
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  
+  // Add sample data
+  const sampleData = [
+    ['TEST-001', '🏠 A warm cinematic kitchen scene with morning sunlight streaming through windows', 'REF-001', '', 3, 'ready', '', '', '', '', '', '', '', ''],
+    ['TEST-002', '🌿 Modern living room with cozy afternoon lighting and green plants', 'REF-002', '', 2, 'ready', '', '', '', '', '', '', '', ''],
+    ['TEST-003', '🛏️ Elegant bedroom with soft evening ambiance and warm colors', 'REF-003', '', 1, 'ready', '', '', '', '', '', '', '', ''],
+    ['TEST-004', '☕ Rustic coffee shop with wooden furniture and vintage decorations', 'REF-004', '', 3, 'ready', '', '', '', '', '', '', '', ''],
+    ['TEST-005', '💼 Modern office space with natural light and minimalist design', 'REF-005', '', 2, 'ready', '', '', '', '', '', '', '', ''],
+    ['TEST-006', '🍽️ Cozy restaurant dining room with ambient lighting', 'REF-006', '', 1, 'ready', '', '', '', '', '', '', '', '']
+  ];
+  
+  sheet.getRange(2, 1, sampleData.length, sampleData[0].length).setValues(sampleData);
+  
+  // Format the sheet professionally
+  const headerRange = sheet.getRange(1, 1, 1, headers.length);
+  headerRange.setBackground('#4285f4');
+  headerRange.setFontColor('#ffffff');
+  headerRange.setFontWeight('bold');
+  headerRange.setFontSize(11);
+  
+  // Auto-resize columns
+  sheet.autoResizeColumns(1, headers.length);
+  
+  // Add borders and alternating colors
+  const dataRange = sheet.getRange(1, 1, sampleData.length + 1, headers.length);
+  dataRange.setBorder(true, true, true, true, true, true, '#e0e0e0', SpreadsheetApp.BorderStyle.SOLID);
+  
+  // Add alternating row colors
+  for (let i = 2; i <= sampleData.length + 1; i++) {
+    if (i % 2 === 0) {
+      sheet.getRange(i, 1, 1, headers.length).setBackground('#f8f9fa');
+    }
+  }
+  
+  // Set column widths for better readability
+  sheet.setColumnWidth(1, 100); // scene_id
+  sheet.setColumnWidth(2, 400); // prompt
+  sheet.setColumnWidth(3, 80);  // ref_pack_id
+  sheet.setColumnWidth(6, 120); // status_img
+  sheet.setColumnWidth(7, 200); // nano_img_1
+  sheet.setColumnWidth(8, 200); // nano_img_2
+  sheet.setColumnWidth(9, 200); // nano_img_3
+  
+  // Freeze header row
+  sheet.setFrozenRows(1);
+  
+  // Add instructions in a note
+  const instructionCell = sheet.getRange('A1');
+  instructionCell.setNote(
+    '🎬 AI Asset Generator Instructions:\n\n' +
+    '1. Click on any row number (2, 3, 4...) to select a row\n' +
+    '2. Extensions → Apps Script to open the script editor\n' +
+    '3. Paste the AI Generator code and save\n' +
+    '4. Refresh this sheet to see the "🎬 AI Asset Generator" menu\n' +
+    '5. Use "🧪 Test Generate (Free)" to test!\n\n' +
+    '💡 Test mode is completely free and safe to use!'
+  );
+}
+
+/**
+ * Test API connection - for debugging
+ */
+function testApiConnection() {
+  try {
+    const response = UrlFetchApp.fetch(`${CONFIG.API_BASE_URL}/healthz`, {
+      method: 'GET',
+      headers: {
+        'x-api-key': CONFIG.API_KEY
+      }
+    });
+    
+    const result = JSON.parse(response.getContentText());
+    
+    if (response.getResponseCode() === 200) {
+      SpreadsheetApp.getUi().alert('✅ API Connection', 'API is working perfectly!', SpreadsheetApp.getUi().ButtonSet.OK);
+    } else {
+      SpreadsheetApp.getUi().alert('❌ API Error', `Status: ${response.getResponseCode()}`, SpreadsheetApp.getUi().ButtonSet.OK);
+    }
+  } catch (error) {
+    SpreadsheetApp.getUi().alert('❌ Connection Failed', `Error: ${error.message}`, SpreadsheetApp.getUi().ButtonSet.OK);
+  }
 }

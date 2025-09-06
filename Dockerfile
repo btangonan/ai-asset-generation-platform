@@ -62,8 +62,9 @@ RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
 RUN chown -R nodejs:nodejs /app
 USER nodejs
 
-# Cloud Run expects port 8080
-EXPOSE 8080
+# Cloud Run injects PORT environment variable dynamically
+# EXPOSE is documentation only - actual port determined by env.PORT
+EXPOSE 9090
 
 # Use the absolute path to the built orchestrator
 CMD ["node", "/app/apps/orchestrator/dist/index.js"]

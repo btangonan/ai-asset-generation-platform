@@ -118,7 +118,7 @@ A comprehensive integrity audit reveals significant discrepancies between report
 
 2. **Clean Environment**
    - Kill zombie processes
-   - Clear ports 8080, 9090
+   - Clear ports 9090
    - Restart development environment
 
 ## 🚫 False Claims vs Reality

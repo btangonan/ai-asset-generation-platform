@@ -12,6 +12,6 @@ const gcsOperations: GCSOperations = {
 
 // Initialize Gemini Image Client with GCS operations
 export const geminiImageClient = new GeminiImageClient(
-  env.GEMINI_API_KEY,
+  env.GEMINI_API_KEY ?? 'fallback-key',
   env.RUN_MODE === 'live' ? gcsOperations : undefined // Only use real GCS in live mode
 );

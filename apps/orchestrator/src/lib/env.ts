@@ -1,16 +1,20 @@
 import { z } from 'zod';
 
+// Trim and clean string inputs to handle Cloud Run env var quirks
+const trim = z.string().transform(s => s.trim());
+const optionalTrim = z.string().transform(s => s.trim()).optional();
+
 const envSchema = z.object({
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  PORT: z.coerce.number().default(8080),
+  NODE_ENV: z.enum(['development', 'production', 'test']).default('production'),
+  PORT: z.coerce.number().default(9090),
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error']).default('info'),
   
   // Google Cloud
-  GOOGLE_CLOUD_PROJECT: z.string(),
+  GOOGLE_CLOUD_PROJECT: trim,
   GOOGLE_APPLICATION_CREDENTIALS: z.string().optional(),
   
   // Storage
-  GCS_BUCKET: z.string(),
+  GCS_BUCKET: trim,
   SIGNED_URL_EXPIRY_DAYS: z.coerce.number().default(7),
   SIGNED_URL_DAYS: z.coerce.number().default(7),
   
@@ -25,8 +29,8 @@ const envSchema = z.object({
   GOOGLE_SHEETS_API_KEY: z.string().optional(),
   GOOGLE_SHEETS_ID: z.string().optional(),
   
-  // Gemini
-  GEMINI_API_KEY: z.string(),
+  // Gemini - Optional in prod, may use ADC
+  GEMINI_API_KEY: optionalTrim,
   
   // Rate limiting
   MAX_ROWS_PER_BATCH: z.coerce.number().default(10),
@@ -38,10 +42,22 @@ const envSchema = z.object({
   RUN_MODE: z.enum(['dry_run', 'live']).default('dry_run'),
   DAILY_BUDGET_USD: z.coerce.number().default(100),
   
-  // Authentication - API Keys for client access
-  AI_PLATFORM_API_KEY_1: z.string().optional(),
-  AI_PLATFORM_API_KEY_2: z.string().optional(),
-  AI_PLATFORM_API_KEY_3: z.string().optional(),
+  // Authentication - API Keys for client access (optional, graceful degradation)
+  AI_PLATFORM_API_KEY_1: optionalTrim,
+  AI_PLATFORM_API_KEY_2: optionalTrim,
+  AI_PLATFORM_API_KEY_3: optionalTrim,
 });
 
-export const env = envSchema.parse(process.env);
+export function loadEnv() {
+  const parsed = envSchema.safeParse(process.env);
+  if (!parsed.success) {
+    // Log paths only, not values - safe for production logs
+    console.error('Invalid env configuration:', 
+      parsed.error.issues.map(i => ({ path: i.path, code: i.code, message: i.message })));
+    process.exit(1);
+  }
+  return parsed.data;
+}
+
+// Maintain backward compatibility
+export const env = loadEnv();

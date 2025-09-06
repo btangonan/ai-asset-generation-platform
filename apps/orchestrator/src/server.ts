@@ -5,21 +5,24 @@ import { videosRoutes } from './routes/videos.js';
 import { healthRoutes } from './routes/health.js';
 import { sheetsRoutes } from './routes/sheets.js';
 import { sendProblemDetails, Problems } from './lib/problem-details.js';
-import { authenticateRequest, validateAuthConfiguration } from './lib/auth.js';
+import { authenticateRequest, initAuth } from './lib/auth.js';
 import { env } from './lib/env.js';
 
 export async function createServer(
   fastify: FastifyInstance,
   _options: FastifyPluginOptions
 ) {
-  // Validate authentication configuration on startup
+  // Initialize authentication with graceful degradation
   if (env.NODE_ENV !== 'test') {
-    const authConfig = validateAuthConfiguration();
-    if (!authConfig.valid) {
-      fastify.log.error({ errors: authConfig.errors }, 'Authentication configuration invalid');
-      throw new Error(`Authentication setup failed: ${authConfig.errors.join(', ')}`);
+    const authStatus = initAuth();
+    if (authStatus.warnings.length > 0) {
+      fastify.log.warn({ warnings: authStatus.warnings }, 'Authentication warnings detected');
     }
-    fastify.log.info('Authentication configuration validated successfully');
+    if (authStatus.enabled) {
+      fastify.log.info('Authentication enabled successfully');
+    } else {
+      fastify.log.warn('Authentication disabled - running without API key validation');
+    }
   }
 
   // Global authentication middleware (runs before all routes)

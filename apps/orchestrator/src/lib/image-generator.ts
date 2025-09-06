@@ -5,7 +5,7 @@ import { logger } from './logger.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Initialize Gemini AI with API key
-const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
+const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY ?? 'fallback-key');
 
 // Model ID for Gemini 2.5 Flash Image (Nano Banana)
 const NANO_BANANA_MODEL = 'gemini-2.5-flash-image-preview';
@@ -39,9 +39,9 @@ async function retry<T>(fn: () => Promise<T>, maxAttempts: number = 4): Promise<
 async function generateNanoBananaImage(prompt: string): Promise<Buffer> {
   const model = genAI.getGenerativeModel({ model: NANO_BANANA_MODEL });
   
-  // Call generateContent with the prompt
+  // Call generateContent with the prompt (no "Generate an image:" prefix needed)
   const result = await retry(async () => {
-    return await model.generateContent(`Generate an image: ${prompt}`);
+    return await model.generateContent(prompt);
   });
   
   // Extract image from response
@@ -57,15 +57,28 @@ async function generateNanoBananaImage(prompt: string): Promise<Buffer> {
     throw new Error('No parts in candidate response');
   }
   
-  // Find the image part (inlineData)
-  const imagePart = parts.find((part: any) => part.inlineData?.data);
+  // Find the image part (inlineData) - iterate through all parts
+  let imagePart = null;
+  for (const part of parts) {
+    if (part.inlineData && part.inlineData.data) {
+      imagePart = part;
+      break;
+    }
+  }
   
   if (!imagePart || !imagePart.inlineData?.data) {
+    // Log the actual response structure for debugging
+    logger.warn({ 
+      candidatesCount: candidates.length, 
+      partsCount: parts.length,
+      partTypes: parts.map((p: any) => Object.keys(p))
+    }, 'No image data found in Gemini response');
     throw new Error('No image data returned from Nano Banana');
   }
   
   // Convert base64 to Buffer
   const imageBuffer = Buffer.from(imagePart.inlineData.data, 'base64');
+  logger.info({ size: imageBuffer.length }, 'Successfully extracted image from Gemini response');
   return imageBuffer;
 }
 

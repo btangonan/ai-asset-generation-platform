@@ -105,7 +105,7 @@ Enforce fps=24 and duration=8 on server.
 ## Build and deploy minimalism
 
 - Monorepo with pnpm. Two stages: build, run. .dockerignore mandatory.
-- Server listens on PORT || 8080, host 0.0.0.0. Graceful SIGTERM within 10 seconds.
+- Server listens on PORT || 9090, host 0.0.0.0. Graceful SIGTERM within 10 seconds.
 - Cloud Run only. No dev tunnels in docs. Apps Script CONFIG points to Cloud Run URL.
 - One start script per service. One stop script. No auto-respawn in dev.
 

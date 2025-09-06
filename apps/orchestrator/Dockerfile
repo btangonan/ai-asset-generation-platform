@@ -47,6 +47,6 @@ RUN adduser -S nodejs -u 1001
 RUN chown -R nodejs:nodejs /app
 USER nodejs
 
-EXPOSE 8080
+EXPOSE 9090
 
 CMD ["node", "apps/orchestrator/dist/index.js"]

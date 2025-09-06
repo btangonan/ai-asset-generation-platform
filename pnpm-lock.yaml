@@ -68,6 +68,9 @@ importers:
       '@google/generative-ai':
         specifier: ^0.24.1
         version: 0.24.1
+      dotenv:
+        specifier: ^17.2.2
+        version: 17.2.2
       fastify:
         specifier: ^4.24.0
         version: 4.29.1
@@ -96,9 +99,6 @@ importers:
       '@types/uuid':
         specifier: ^9.0.0
         version: 9.0.8
-      dotenv:
-        specifier: ^17.2.2
-        version: 17.2.2
       dotenv-cli:
         specifier: ^10.0.0
         version: 10.0.0
@@ -1893,7 +1893,6 @@ packages:
   /dotenv@17.2.2:
     resolution: {integrity: sha512-Sf2LSQP+bOlhKWWyhFsn0UsfdK/kCWRv1iuA2gXAwt3dyNabr6QSj00I2V10pidqz69soatm9ZwZvpQMTIOd5Q==}
     engines: {node: '>=12'}
-    dev: true
 
   /dunder-proto@1.0.1:
     resolution: {integrity: sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==}

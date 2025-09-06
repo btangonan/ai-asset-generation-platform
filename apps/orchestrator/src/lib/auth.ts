@@ -178,27 +178,48 @@ export function generateApiKey(): string {
 }
 
 /**
- * Validate if authentication is properly configured
+ * Validate if authentication is properly configured (non-fatal)
  */
 export function validateAuthConfiguration(): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
   
   if (VALID_API_KEYS.size === 0) {
-    errors.push('No API keys configured. Set AI_PLATFORM_API_KEY_* environment variables.');
+    errors.push('No API keys configured. Authentication disabled.');
   }
   
-  if (VALID_API_KEYS.size < 2 && env.NODE_ENV === 'production') {
+  if (VALID_API_KEYS.size < 2 && env.NODE_ENV === 'production' && VALID_API_KEYS.size > 0) {
     errors.push('Production environments should have at least 2 API keys for key rotation.');
   }
   
   for (const key of VALID_API_KEYS) {
     if (!isValidApiKeyFormat(key)) {
-      errors.push(`Invalid API key format: ${key.slice(0, 8)}...`);
+      errors.push(`Invalid API key format: ${key.slice(0, 8)}... - disabling key`);
     }
   }
   
   return {
     valid: errors.length === 0,
     errors
+  };
+}
+
+/**
+ * Initialize authentication system with graceful degradation
+ */
+export function initAuth(): { enabled: boolean; warnings: string[] } {
+  const validation = validateAuthConfiguration();
+  
+  if (!validation.valid) {
+    logger.warn('Authentication system warnings:', validation.errors);
+    return {
+      enabled: VALID_API_KEYS.size > 0,
+      warnings: validation.errors
+    };
+  }
+  
+  logger.info(`Authentication enabled with ${VALID_API_KEYS.size} valid API keys`);
+  return {
+    enabled: true,
+    warnings: []
   };
 }

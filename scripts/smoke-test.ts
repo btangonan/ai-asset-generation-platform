@@ -36,7 +36,7 @@ async function runSmokeTest(): Promise<void> {
     // Dynamic import to test the module
     const { env } = await import('../apps/orchestrator/src/lib/env.js');
     
-    if (env.PORT !== 8080) throw new Error('Default PORT should be 8080');
+    if (env.PORT !== 9090) throw new Error('Default PORT should be 9090 (overridden by environment)');
     if (env.RUN_MODE !== 'dry_run') throw new Error('Default RUN_MODE should be dry_run');
   });
 

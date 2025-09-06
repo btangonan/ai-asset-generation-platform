@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Image Generator - Create Professional Images Instantly</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #4F46E5;
+            --primary-dark: #4338CA;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --error: #EF4444;
+            --gray-50: #F9FAFB;
+            --gray-100: #F3F4F6;
+            --gray-200: #E5E7EB;
+            --gray-300: #D1D5DB;
+            --gray-400: #9CA3AF;
+            --gray-500: #6B7280;
+            --gray-600: #4B5563;
+            --gray-700: #374151;
+            --gray-800: #1F2937;
+            --gray-900: #111827;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: var(--gray-900);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .app-wrapper {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            overflow: hidden;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 3rem 2rem;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 3rem 2rem;
+        }
+
+        /* Prompt Section */
+        .prompt-section {
+            margin-bottom: 3rem;
+        }
+
+        .prompt-label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--gray-700);
+        }
+
+        .prompt-textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 1rem;
+            border: 2px solid var(--gray-200);
+            border-radius: 12px;
+            font-size: 1rem;
+            resize: vertical;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+
+        .prompt-textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .prompt-textarea::placeholder {
+            color: var(--gray-400);
+        }
+
+        /* Quick Prompts */
+        .quick-prompts {
+            margin-top: 1rem;
+        }
+
+        .quick-prompts-label {
+            font-size: 0.875rem;
+            color: var(--gray-600);
+            margin-bottom: 0.5rem;
+        }
+
+        .quick-prompt-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .quick-prompt-btn {
+            padding: 0.5rem 1rem;
+            background: var(--gray-100);
+            border: 1px solid var(--gray-300);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            color: var(--gray-700);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .quick-prompt-btn:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+            transform: translateY(-1px);
+        }
+
+        /* Style Options */
+        .style-section {
+            margin-bottom: 3rem;
+        }
+
+        .style-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .style-option {
+            padding: 1rem;
+            border: 2px solid var(--gray-200);
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: white;
+        }
+
+        .style-option:hover {
+            border-color: var(--primary);
+            background: var(--gray-50);
+        }
+
+        .style-option.selected {
+            border-color: var(--primary);
+            background: rgba(79, 70, 229, 0.05);
+        }
+
+        .style-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .style-name {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--gray-700);
+        }
+
+        /* Variants Section */
+        .variants-section {
+            margin-bottom: 3rem;
+        }
+
+        .variants-selector {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .variant-option {
+            flex: 1;
+            padding: 1.5rem;
+            border: 2px solid var(--gray-200);
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: white;
+        }
+
+        .variant-option:hover {
+            border-color: var(--primary);
+            background: var(--gray-50);
+        }
+
+        .variant-option.selected {
+            border-color: var(--primary);
+            background: rgba(79, 70, 229, 0.05);
+        }
+
+        .variant-number {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .variant-cost {
+            font-size: 0.875rem;
+            color: var(--gray-600);
+        }
+
+        /* Reference Upload */
+        .reference-section {
+            margin-bottom: 3rem;
+        }
+
+        .upload-area {
+            border: 2px dashed var(--gray-300);
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s;
+            cursor: pointer;
+            background: var(--gray-50);
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary);
+            background: white;
+        }
+
+        .upload-area.dragover {
+            border-color: var(--primary);
+            background: rgba(79, 70, 229, 0.05);
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: var(--gray-400);
+            margin-bottom: 1rem;
+        }
+
+        .upload-text {
+            color: var(--gray-600);
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-hint {
+            font-size: 0.875rem;
+            color: var(--gray-500);
+        }
+
+        /* Action Buttons */
+        .action-section {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-preview {
+            background: var(--gray-100);
+            color: var(--gray-700);
+            border: 2px solid var(--gray-300);
+        }
+
+        .btn-preview:hover {
+            background: var(--gray-200);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-generate {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border: 2px solid transparent;
+        }
+
+        .btn-generate:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* Cost Display */
+        .cost-display {
+            text-align: center;
+            padding: 1rem;
+            background: var(--gray-50);
+            border-radius: 12px;
+            margin-bottom: 2rem;
+        }
+
+        .cost-label {
+            font-size: 0.875rem;
+            color: var(--gray-600);
+            margin-bottom: 0.25rem;
+        }
+
+        .cost-amount {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--success);
+        }
+
+        /* Progress Section */
+        .progress-section {
+            display: none;
+            margin-bottom: 2rem;
+        }
+
+        .progress-section.active {
+            display: block;
+        }
+
+        .progress-bar-container {
+            background: var(--gray-200);
+            border-radius: 9999px;
+            height: 8px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border-radius: 9999px;
+            transition: width 0.3s;
+            width: 0%;
+        }
+
+        .progress-text {
+            text-align: center;
+            color: var(--gray-600);
+            font-size: 0.875rem;
+        }
+
+        /* Results Section */
+        .results-section {
+            display: none;
+            margin-top: 3rem;
+            padding-top: 3rem;
+            border-top: 2px solid var(--gray-200);
+        }
+
+        .results-section.active {
+            display: block;
+        }
+
+        .results-header {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+            color: var(--gray-800);
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .result-card {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s;
+            background: white;
+        }
+
+        .result-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .result-image {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            background: var(--gray-100);
+        }
+
+        .result-actions {
+            padding: 1rem;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .result-btn {
+            flex: 1;
+            padding: 0.5rem;
+            border: 1px solid var(--gray-300);
+            border-radius: 8px;
+            background: white;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .result-btn:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* Error Message */
+        .error-message {
+            display: none;
+            padding: 1rem;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 8px;
+            color: var(--error);
+            margin-bottom: 1rem;
+        }
+
+        .error-message.active {
+            display: block;
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .header h1 {
+                font-size: 1.75rem;
+            }
+
+            .main-content {
+                padding: 2rem 1rem;
+            }
+
+            .action-section {
+                flex-direction: column;
+            }
+
+            .variants-selector {
+                flex-direction: column;
+            }
+
+            .results-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="app-wrapper">
+            <header class="header">
+                <h1>🎨 AI Image Generator</h1>
+                <p>Create Professional Images with AI - No Sign-up Required</p>
+            </header>
+
+            <main class="main-content">
+                <!-- Error Message -->
+                <div id="errorMessage" class="error-message"></div>
+
+                <!-- Prompt Section -->
+                <section class="prompt-section">
+                    <label class="prompt-label">Describe your perfect image</label>
+                    <textarea 
+                        id="promptInput" 
+                        class="prompt-textarea" 
+                        placeholder="A cozy living room with warm lighting, modern furniture, and plants by the window..."
+                    ></textarea>
+                    
+                    <div class="quick-prompts">
+                        <div class="quick-prompts-label">Quick start ideas:</div>
+                        <div class="quick-prompt-buttons">
+                            <button class="quick-prompt-btn" data-prompt="A warm cinematic kitchen scene with morning sunlight streaming through windows">
+                                🏠 Cozy Kitchen
+                            </button>
+                            <button class="quick-prompt-btn" data-prompt="Modern living room with minimalist design, soft lighting, and green plants">
+                                🌿 Modern Living Room
+                            </button>
+                            <button class="quick-prompt-btn" data-prompt="Professional headshot with studio lighting and neutral background">
+                                👤 Professional Headshot
+                            </button>
+                            <button class="quick-prompt-btn" data-prompt="Product photography with clean white background and professional lighting">
+                                📦 Product Shot
+                            </button>
+                            <button class="quick-prompt-btn" data-prompt="Rustic coffee shop interior with wooden furniture and warm ambiance">
+                                ☕ Coffee Shop
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Style Section -->
+                <section class="style-section">
+                    <label class="prompt-label">Choose a style</label>
+                    <div class="style-options">
+                        <div class="style-option selected" data-style="photorealistic">
+                            <div class="style-icon">📸</div>
+                            <div class="style-name">Photorealistic</div>
+                        </div>
+                        <div class="style-option" data-style="artistic">
+                            <div class="style-icon">🎨</div>
+                            <div class="style-name">Artistic</div>
+                        </div>
+                        <div class="style-option" data-style="minimalist">
+                            <div class="style-icon">⬜</div>
+                            <div class="style-name">Minimalist</div>
+                        </div>
+                        <div class="style-option" data-style="cinematic">
+                            <div class="style-icon">🎬</div>
+                            <div class="style-name">Cinematic</div>
+                        </div>
+                        <div class="style-option" data-style="professional">
+                            <div class="style-icon">💼</div>
+                            <div class="style-name">Professional</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Variants Section -->
+                <section class="variants-section">
+                    <label class="prompt-label">Number of variations</label>
+                    <div class="variants-selector">
+                        <div class="variant-option" data-variants="1">
+                            <div class="variant-number">1</div>
+                            <div class="variant-cost">$0.002</div>
+                        </div>
+                        <div class="variant-option selected" data-variants="2">
+                            <div class="variant-number">2</div>
+                            <div class="variant-cost">$0.004</div>
+                        </div>
+                        <div class="variant-option" data-variants="3">
+                            <div class="variant-number">3</div>
+                            <div class="variant-cost">$0.006</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Reference Upload (Optional) -->
+                <section class="reference-section">
+                    <label class="prompt-label">Style reference (optional)</label>
+                    <div class="upload-area" id="uploadArea">
+                        <input type="file" id="fileInput" accept="image/*" style="display: none;">
+                        <div class="upload-icon">📤</div>
+                        <div class="upload-text">Drop an image here or click to upload</div>
+                        <div class="upload-hint">Use an image as style reference for your generation</div>
+                    </div>
+                </section>
+
+                <!-- Cost Display -->
+                <div class="cost-display">
+                    <div class="cost-label">Estimated Cost</div>
+                    <div class="cost-amount" id="costAmount">$0.004</div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="action-section">
+                    <button id="previewBtn" class="btn btn-preview">
+                        🔍 Preview (Free)
+                    </button>
+                    <button id="generateBtn" class="btn btn-generate">
+                        ✨ Generate Images
+                    </button>
+                </div>
+
+                <!-- Progress Section -->
+                <div id="progressSection" class="progress-section">
+                    <div class="progress-bar-container">
+                        <div id="progressBar" class="progress-bar"></div>
+                    </div>
+                    <div id="progressText" class="progress-text">Generating your images...</div>
+                </div>
+
+                <!-- Results Section -->
+                <div id="resultsSection" class="results-section">
+                    <h2 class="results-header">Generated Images</h2>
+                    <div id="resultsGrid" class="results-grid"></div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const API_URL = 'https://orchestrator-582559442661.us-central1.run.app';
+        const API_KEY = 'aip_XBvepbgodm3UjQkWzyW5OQWwxnZZD3z0mXjodee5eTc';
+        const COST_PER_IMAGE = 0.002;
+
+        // State
+        let selectedStyle = 'photorealistic';
+        let selectedVariants = 2;
+        let referenceImage = null;
+
+        // Elements
+        const promptInput = document.getElementById('promptInput');
+        const errorMessage = document.getElementById('errorMessage');
+        const costAmount = document.getElementById('costAmount');
+        const previewBtn = document.getElementById('previewBtn');
+        const generateBtn = document.getElementById('generateBtn');
+        const progressSection = document.getElementById('progressSection');
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        const resultsSection = document.getElementById('resultsSection');
+        const resultsGrid = document.getElementById('resultsGrid');
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+
+        // Quick Prompt Buttons
+        document.querySelectorAll('.quick-prompt-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                promptInput.value = btn.dataset.prompt;
+                updateCost();
+            });
+        });
+
+        // Style Selection
+        document.querySelectorAll('.style-option').forEach(option => {
+            option.addEventListener('click', () => {
+                document.querySelectorAll('.style-option').forEach(o => o.classList.remove('selected'));
+                option.classList.add('selected');
+                selectedStyle = option.dataset.style;
+            });
+        });
+
+        // Variant Selection
+        document.querySelectorAll('.variant-option').forEach(option => {
+            option.addEventListener('click', () => {
+                document.querySelectorAll('.variant-option').forEach(o => o.classList.remove('selected'));
+                option.classList.add('selected');
+                selectedVariants = parseInt(option.dataset.variants);
+                updateCost();
+            });
+        });
+
+        // File Upload
+        uploadArea.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            handleFileSelect(e.dataTransfer.files[0]);
+        });
+        fileInput.addEventListener('change', (e) => {
+            handleFileSelect(e.target.files[0]);
+        });
+
+        function handleFileSelect(file) {
+            if (file && file.type.startsWith('image/')) {
+                referenceImage = file;
+                uploadArea.querySelector('.upload-text').textContent = `Selected: ${file.name}`;
+                uploadArea.style.background = 'rgba(79, 70, 229, 0.05)';
+            }
+        }
+
+        // Update Cost Display
+        function updateCost() {
+            const cost = selectedVariants * COST_PER_IMAGE;
+            costAmount.textContent = `$${cost.toFixed(3)}`;
+        }
+
+        // Show Error
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.add('active');
+            setTimeout(() => {
+                errorMessage.classList.remove('active');
+            }, 5000);
+        }
+
+        // Preview Function
+        previewBtn.addEventListener('click', async () => {
+            const prompt = promptInput.value.trim();
+            if (!prompt) {
+                showError('Please enter a description for your image');
+                return;
+            }
+
+            try {
+                previewBtn.disabled = true;
+                previewBtn.innerHTML = '<span class="spinner"></span> Calculating...';
+
+                // Enhance prompt with style
+                const enhancedPrompt = `${prompt}, ${selectedStyle} style`;
+
+                const response = await fetch(`${API_URL}/batch/images`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': API_KEY
+                    },
+                    body: JSON.stringify({
+                        requests: [{
+                            scene_id: `preview-${Date.now()}`,
+                            prompt: enhancedPrompt,
+                            variants: selectedVariants
+                        }],
+                        run_mode: 'dry_run'
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    alert(`Preview successful!\n\nEstimated cost: $${(selectedVariants * COST_PER_IMAGE).toFixed(3)}\nProcessing time: ~30 seconds\n\nClick "Generate Images" to create actual images.`);
+                } else {
+                    showError(data.detail || 'Preview failed. Please try again.');
+                }
+            } catch (error) {
+                showError('Network error. Please check your connection.');
+            } finally {
+                previewBtn.disabled = false;
+                previewBtn.innerHTML = '🔍 Preview (Free)';
+            }
+        });
+
+        // Generate Function
+        generateBtn.addEventListener('click', async () => {
+            const prompt = promptInput.value.trim();
+            if (!prompt) {
+                showError('Please enter a description for your image');
+                return;
+            }
+
+            try {
+                // Show progress
+                generateBtn.disabled = true;
+                previewBtn.disabled = true;
+                generateBtn.innerHTML = '<span class="spinner"></span> Generating...';
+                progressSection.classList.add('active');
+                resultsSection.classList.remove('active');
+                resultsGrid.innerHTML = '';
+
+                // Animate progress bar
+                let progress = 0;
+                const progressInterval = setInterval(() => {
+                    progress += 2;
+                    if (progress > 90) progress = 90;
+                    progressBar.style.width = `${progress}%`;
+                    progressText.textContent = `Generating your images... ${Math.floor(progress)}%`;
+                }, 500);
+
+                // Enhance prompt with style
+                const enhancedPrompt = `${prompt}, ${selectedStyle} style`;
+
+                const response = await fetch(`${API_URL}/batch/images`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': API_KEY
+                    },
+                    body: JSON.stringify({
+                        requests: [{
+                            scene_id: `web-${Date.now()}`,
+                            prompt: enhancedPrompt,
+                            variants: selectedVariants
+                        }],
+                        run_mode: 'dry_run' // Using dry_run for demo
+                    })
+                });
+
+                const data = await response.json();
+                
+                clearInterval(progressInterval);
+                progressBar.style.width = '100%';
+                progressText.textContent = 'Generation complete!';
+
+                if (response.ok && data.batch_job) {
+                    // Display results
+                    setTimeout(() => {
+                        displayResults(data.batch_job);
+                        progressSection.classList.remove('active');
+                    }, 1000);
+                } else {
+                    showError(data.detail || 'Generation failed. Please try again.');
+                    progressSection.classList.remove('active');
+                }
+            } catch (error) {
+                showError('Network error. Please check your connection.');
+                progressSection.classList.remove('active');
+            } finally {
+                generateBtn.disabled = false;
+                previewBtn.disabled = false;
+                generateBtn.innerHTML = '✨ Generate Images';
+            }
+        });
+
+        // Display Results
+        function displayResults(batchJob) {
+            resultsSection.classList.add('active');
+            resultsGrid.innerHTML = '';
+
+            // For demo, create placeholder images
+            const images = batchJob.images || [];
+            const basePrompt = promptInput.value;
+
+            for (let i = 0; i < selectedVariants; i++) {
+                const card = document.createElement('div');
+                card.className = 'result-card';
+                
+                // Use actual URLs if available, otherwise placeholder
+                const imageUrl = images[i]?.public_url || 
+                    `https://via.placeholder.com/400x250/667eea/ffffff?text=Variant+${i+1}`;
+                
+                card.innerHTML = `
+                    <img src="${imageUrl}" alt="Generated image ${i+1}" class="result-image">
+                    <div class="result-actions">
+                        <button class="result-btn" onclick="downloadImage('${imageUrl}', 'image-${i+1}.png')">
+                            💾 Download
+                        </button>
+                        <button class="result-btn" onclick="shareImage('${imageUrl}')">
+                            🔗 Share
+                        </button>
+                        <button class="result-btn" onclick="remixImage('${basePrompt}')">
+                            🔄 Remix
+                        </button>
+                    </div>
+                `;
+                
+                resultsGrid.appendChild(card);
+            }
+        }
+
+        // Helper Functions
+        function downloadImage(url, filename) {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+        }
+
+        function shareImage(url) {
+            if (navigator.share) {
+                navigator.share({
+                    title: 'AI Generated Image',
+                    text: 'Check out this AI-generated image!',
+                    url: url
+                });
+            } else {
+                navigator.clipboard.writeText(url);
+                alert('Image URL copied to clipboard!');
+            }
+        }
+
+        function remixImage(prompt) {
+            promptInput.value = prompt + ' (variation)';
+            promptInput.scrollIntoView({ behavior: 'smooth' });
+            promptInput.focus();
+        }
+
+        // Initialize
+        updateCost();
+    </script>
+</body>
+</html>
