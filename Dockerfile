@@ -8,7 +8,7 @@ RUN npm install -g pnpm@8
 WORKDIR /app
 
 # Copy workspace configuration first
-COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json tsconfig.json ./
 
 # Copy all package.json files (for dependency resolution)
 COPY packages/shared/package.json ./packages/shared/
@@ -40,7 +40,7 @@ RUN npm install -g pnpm@8
 WORKDIR /app
 
 # Copy workspace configuration
-COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json tsconfig.json ./
 
 # Copy package.json files for production install
 COPY packages/shared/package.json ./packages/shared/
