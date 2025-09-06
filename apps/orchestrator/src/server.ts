@@ -3,6 +3,7 @@ import { imagesRoutes } from './routes/images.js';
 import { statusRoutes } from './routes/status.js';
 import { videosRoutes } from './routes/videos.js';
 import { healthRoutes } from './routes/health.js';
+import { sheetsRoutes } from './routes/sheets.js';
 
 export async function createServer(
   fastify: FastifyInstance,
@@ -19,6 +20,7 @@ export async function createServer(
   // API routes
   await fastify.register(imagesRoutes, { prefix: '/batch' });
   await fastify.register(videosRoutes, { prefix: '/batch' });
+  await fastify.register(sheetsRoutes, { prefix: '/batch' });
   await fastify.register(statusRoutes);
 
   // Global error handler

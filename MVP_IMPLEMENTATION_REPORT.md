@@ -286,7 +286,62 @@ Next phase should focus on:
 3. Implementing async processing via Pub/Sub
 4. Adding production monitoring
 
+## 🆕 Version 1.1.0 Updates - Cost Tracking & Enhanced Filtering
+
+### Added September 6, 2025
+
+#### Per-Row Cost Tracking
+- **Implementation**: Added automatic cost calculation and writing to Google Sheets
+- **Cost Formula**: `variants × $0.002` per image (e.g., 2 variants = $0.0040)
+- **Sheet Integration**: Cost written to "cost" column with `$0.0040` format
+- **Location**: `apps/orchestrator/src/routes/sheets.ts:195-206`
+
+```typescript
+// Calculate actual cost for this row
+const rowCost = costCalculator.estimateImageBatch([{
+  scene_id: row.scene_id,
+  prompt: row.prompt,
+  variants: row.variants
+}]);
+
+// Update sheet with cost data
+const updateData: any = {
+  status_img: 'completed',
+  cost: `$${rowCost.toFixed(4)}`
+};
+```
+
+#### Enhanced Status Filtering
+- **Flexible Row Processing**: Support for `pending`, `completed`, `error`, `running`, `all` status filters
+- **Smart Pending Logic**: Treats both empty status and "pending" as processable
+- **Batch Control**: Configurable row limits (1-100 rows per batch)
+- **API Enhancement**: Status filtering via `rowFilter.status` parameter
+
+#### Google Sheets Integration Improvements
+- **Required Headers**: Added "cost" to required header list in error messages
+- **Column Mapping**: Dynamic column detection for all Sheet headers
+- **Error Handling**: Better error messages for missing cost column
+- **Documentation**: Comprehensive GOOGLE_SHEET_TEMPLATE.md created
+
+#### Critical User Issue Resolution
+- **Problem**: Cost tracking wasn't appearing in user's Google Sheet
+- **Root Cause**: Missing "cost" column header in target Sheet
+- **Solution**: Created detailed setup guide requiring manual cost column addition
+- **User Impact**: Cost tracking only works when "cost" header exists in Column J
+
+### Testing Results
+- ✅ Live API calls with Sheet ID `1O6HUXqPHfxRNK24LV3RxsqZtvgVuttfJ6Q2JznJV7kM`
+- ✅ Cost calculation working: 2 variants = $0.0040
+- ✅ Status filtering operational for pending/completed/error rows
+- ⚠️ Cost writing requires manual Sheet header setup
+
+### Documentation Updates
+- **PROJECT_SUMMARY.md**: Updated with cost tracking features
+- **GOOGLE_SHEET_TEMPLATE.md**: New comprehensive Sheet setup guide
+- **Version**: Bumped to 1.1.0 across all documentation
+
 ---
 
-*Generated: September 5, 2025*
-*Status: MVP Complete - Ready for Phase 2*
+*Generated: September 5, 2025*  
+*Updated: September 6, 2025 (v1.1.0 Cost Tracking)*  
+*Status: MVP Complete with Cost Tracking - Ready for Phase 2*

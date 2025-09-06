@@ -1,0 +1,11 @@
+scene_id,prompt,variants,status_img,nano_img_1,nano_img_2,nano_img_3,job_id,error_msg
+scene-001,A majestic mountain landscape at sunset with golden peaks and purple skies,2,pending,,,,,,
+scene-002,Modern minimalist office space with plants and natural lighting,1,pending,,,,,,
+scene-003,Abstract geometric patterns in vibrant blue and purple gradients,3,pending,,,,,,
+scene-004,Cozy coffee shop interior with warm lighting and vintage furniture,2,pending,,,,,,
+scene-005,Futuristic cityscape with neon lights and flying vehicles at night,1,pending,,,,,,
+scene-006,Peaceful zen garden with cherry blossoms and a small wooden bridge,3,pending,,,,,,
+scene-007,Underwater coral reef scene with colorful tropical fish,2,pending,,,,,,
+scene-008,Rustic farmhouse kitchen with exposed beams and copper cookware,1,pending,,,,,,
+scene-009,Northern lights dancing over a snowy mountain range,2,pending,,,,,,
+scene-010,Art deco style poster with bold geometric shapes and gold accents,3,pending,,,,,

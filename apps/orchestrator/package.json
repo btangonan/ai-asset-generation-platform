@@ -27,6 +27,7 @@
     "@fastify/rate-limit": "^9.0.0",
     "@google-cloud/pubsub": "^4.11.0",
     "@google-cloud/storage": "^7.0.0",
+    "@google/generative-ai": "^0.24.1",
     "fastify": "^4.24.0",
     "googleapis": "^126.0.0",
     "pino": "^8.16.0",

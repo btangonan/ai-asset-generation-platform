@@ -113,19 +113,8 @@ export async function imagesRoutes(
     });
 
     // Import necessary modules for direct generation
-    const { GeminiImageClient } = await import('@ai-platform/clients');
-    const { putObject, makeThumb, generateSignedUrl, downloadUrl, getImagePath } = await import('../lib/gcs.js');
+    const { generateAndUploadImage } = await import('../lib/image-generator.js');
     const { updateSheetRow } = await import('../lib/sheets.js');
-    
-    // Initialize Gemini client with GCS operations
-    const gcsOps = {
-      putObject,
-      makeThumb,
-      getSignedUrl: generateSignedUrl,
-      downloadUrl,
-      getImagePath,
-    };
-    const geminiClient = new GeminiImageClient(env.GEMINI_API_KEY, gcsOps);
     
     const jobs: any[] = [];
     const results: any[] = [];
@@ -146,16 +135,23 @@ export async function imagesRoutes(
           }
         }
         
-        // Generate images with Gemini
-        const result = await geminiClient.generateImages({
-          prompt: item.prompt,
-          refPackUrls: item.ref_pack_public_urls || [],
-          variants: item.variants,
-          sceneId: item.scene_id,
-          jobId,
-        });
+        // Generate images with Nano Banana
+        const images = [];
+        for (let v = 1; v <= item.variants; v++) {
+          const imageResult = await generateAndUploadImage(
+            item.scene_id,
+            item.prompt,
+            v
+          );
+          images.push({
+            gcsUri: `gs://${env.GCS_BUCKET}/images/${item.scene_id}/variant_${v}.png`,
+            signedUrl: imageResult.url,
+            thumbnailUrl: imageResult.thumbnailUrl
+          });
+        }
         
-        fastify.log.info({ jobId, imageCount: result.images?.length }, 'Images generated successfully');
+        const result = { images };
+        fastify.log.info({ jobId, imageCount: images.length }, 'Images generated successfully');
         
         // Update sheet with results if sheet ID provided
         if (sheetId !== 'default-sheet' && result.images) {

@@ -2,6 +2,11 @@ import { Storage } from '@google-cloud/storage';
 import sharp from 'sharp';
 import { env } from './env.js';
 import { logger } from './logger.js';
+import { withRetry, withTimeout } from './retry.js';
+
+// Configure Sharp concurrency for resource management
+const SHARP_CONCURRENCY = Number(env.SHARP_CONCURRENCY || 2);
+sharp.concurrency(SHARP_CONCURRENCY);
 
 const storage = new Storage({
   projectId: env.GOOGLE_CLOUD_PROJECT,
@@ -43,13 +48,24 @@ export async function putObject(
       finalContentType = 'image/png';
     }
     
-    await file.save(finalBuffer, {
-      metadata: {
-        contentType: finalContentType,
-        cacheControl: 'public, max-age=7776000', // 90 days
+    // Upload with retry logic
+    await withRetry(
+      async () => {
+        await file.save(finalBuffer, {
+          metadata: {
+            contentType: finalContentType,
+            cacheControl: 'public, max-age=7776000', // 90 days
+          },
+          resumable: false, // Non-resumable for files < 10MB
+        });
       },
-      resumable: false, // For files < 10MB
-    });
+      {
+        maxAttempts: 3,
+        onRetry: (attempt) => {
+          logger.warn({ gcsPath, attempt }, 'Retrying GCS upload');
+        }
+      }
+    );
 
     const signedUrl = await generateSignedUrl(gcsPath);
     
@@ -59,7 +75,7 @@ export async function putObject(
     };
   } catch (error) {
     logger.error({ error, gcsPath }, 'Failed to upload to GCS');
-    throw new Error(`GCS upload failed: ${error.message}`);
+    throw new Error(`GCS upload failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -86,49 +102,36 @@ export async function makeThumb(buffer: Buffer): Promise<Buffer> {
       .toBuffer();
   } catch (error) {
     logger.error({ error }, 'Failed to generate thumbnail');
-    throw new Error(`Thumbnail generation failed: ${error.message}`);
+    throw new Error(`Thumbnail generation failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
 /**
  * Generate a signed URL for a GCS object
- * TEMPORARY: Using public URLs for MVP testing
+ * Uses V4 signed URLs with service account credentials
  */
 export async function generateSignedUrl(
   gcsPath: string,
   options: { expiresInDays?: number } = {}
 ): Promise<string> {
-  const { expiresInDays = 7 } = options;
+  const { expiresInDays = Number(env.SIGNED_URL_DAYS || 7) } = options; // Use env variable, default to 7 days (GCS max)
   const file = bucket.file(gcsPath);
   
   try {
-    // TEMPORARY: For MVP testing, return public URL instead of signed URL
-    // This requires the bucket to have public read access or the files to be public
-    // In production, we'll use proper service account credentials for signed URLs
-    logger.info({ gcsPath }, 'Using public URL for MVP testing (signed URLs require service account)');
+    // Generate V4 signed URL with very long expiry
+    // This will use the service account credentials if available,
+    // or impersonation if GOOGLE_AUTH_IMPERSONATE_SERVICE_ACCOUNT is set
+    const [signedUrl] = await file.getSignedUrl({
+      version: 'v4',
+      action: 'read',
+      expires: Date.now() + expiresInDays * 24 * 60 * 60 * 1000,
+    });
     
-    // Make the file public temporarily for testing
-    try {
-      await file.makePublic();
-    } catch (err) {
-      logger.warn({ error: err, gcsPath }, 'Could not make file public, continuing anyway');
-    }
-    
-    // Return the public URL
-    const publicUrl = `https://storage.googleapis.com/${env.GCS_BUCKET}/${gcsPath}`;
-    return publicUrl;
-    
-    // Original signed URL code - will restore when we have service account credentials
-    // const [signedUrl] = await file.getSignedUrl({
-    //   version: 'v4',
-    //   action: 'read',
-    //   expires: Date.now() + expiresInDays * 24 * 60 * 60 * 1000,
-    // });
-    // return signedUrl;
+    logger.info({ gcsPath, expiresInDays }, 'Generated signed URL for GCS object');
+    return signedUrl;
   } catch (error) {
-    logger.error({ error, gcsPath }, 'Failed to generate URL');
-    // For MVP, return public URL as fallback
-    return `https://storage.googleapis.com/${env.GCS_BUCKET}/${gcsPath}`;
+    logger.error({ error, gcsPath }, 'Failed to generate signed URL');
+    throw new Error(`Failed to generate signed URL: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -149,7 +152,7 @@ export async function downloadUrl(url: string): Promise<Buffer> {
     return Buffer.from(arrayBuffer);
   } catch (error) {
     logger.error({ error, url }, 'Failed to download URL');
-    throw new Error(`URL download failed: ${error.message}`);
+    throw new Error(`URL download failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
