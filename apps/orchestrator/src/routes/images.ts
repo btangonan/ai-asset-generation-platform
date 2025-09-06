@@ -110,7 +110,7 @@ export async function imagesRoutes(
     });
 
     // Import necessary modules for direct generation
-    const { generateAndUploadImage } = await import('../lib/image-generator.js');
+    const { generateAndUploadImages } = await import('../lib/image-generator.js');
     const { updateSheetRow } = await import('../lib/sheets.js');
     
     const jobs: any[] = [];
@@ -121,7 +121,12 @@ export async function imagesRoutes(
       const jobId = `${batchId}_${item.scene_id}_${index}`;
       
       try {
-        fastify.log.info({ jobId, sceneId: item.scene_id }, 'Generating images directly');
+        fastify.log.info({ 
+          jobId, 
+          sceneId: item.scene_id,
+          referenceCount: item.ref_pack_public_urls?.length ?? 0,
+          referenceMode: item.reference_mode
+        }, 'Generating images directly');
         
         // Update sheet status to "running" if sheet ID provided
         if (sheetId !== 'default-sheet') {
@@ -132,20 +137,21 @@ export async function imagesRoutes(
           }
         }
         
-        // Generate images with Nano Banana
-        const images = [];
-        for (let v = 1; v <= item.variants; v++) {
-          const imageResult = await generateAndUploadImage(
-            item.scene_id,
-            item.prompt,
-            v
-          );
-          images.push({
-            gcsUri: `gs://${env.GCS_BUCKET}/images/${item.scene_id}/variant_${v}.png`,
-            signedUrl: imageResult.url,
-            thumbnailUrl: imageResult.thumbnailUrl
-          });
-        }
+        // Generate images with Nano Banana including reference support
+        const imageResults = await generateAndUploadImages(
+          item.scene_id,
+          item.prompt,
+          item.variants,
+          item.ref_pack_public_urls,
+          item.reference_mode
+        );
+        
+        // Map results to expected format
+        const images = imageResults.map((result, idx) => ({
+          gcsUri: `gs://${env.GCS_BUCKET}/images/${item.scene_id}/variant_${idx + 1}.png`,
+          signedUrl: result.url,
+          thumbnailUrl: result.thumbnailUrl
+        }));
         
         const result = { images };
         fastify.log.info({ jobId, imageCount: images.length }, 'Images generated successfully');

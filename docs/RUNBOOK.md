@@ -31,7 +31,8 @@ Your sheet must have these columns (exact names matter):
 | `prompt` | Text description | `Warm cinematic kitchen, morning light` |
 | `ref_pack_id` | Reference ID | `RP-kitchen-cozy` |
 | `ref_pack_url` | Drive folder link | `https://drive.google.com/drive/folders/...` |
-| `ref_pack_public_url` | GCS signed URL | `https://storage.googleapis.com/...` |
+| `ref_pack_public_urls` | Array of GCS signed URLs | `["https://storage.googleapis.com/..."]` |
+| `reference_mode` | How to use references | `style_only` or `style_and_composition` |
 | `status_img` | Image status | `queued`, `running`, `awaiting_review`, `error` |
 | `nano_img_1` | Generated image 1 | (auto-filled) |
 | `nano_img_2` | Generated image 2 | (auto-filled) |
@@ -51,6 +52,38 @@ These columns exist but are not used yet:
 | `status_video` | Video status | `ready_to_queue` |
 | `video_url` | Generated video | (empty) |
 
+## 🖼️ Reference Images (NEW)
+
+### Overview
+The system now supports reference image conditioning for AI image generation. You can provide up to 6 reference images per row to guide the style and composition of generated images.
+
+### Reference Modes
+- **`style_only`** (default): Uses references for aesthetic/style guidance while creating entirely new compositions
+- **`style_and_composition`**: Maintains both the visual style AND compositional structure of references
+
+### Setting Up References
+
+1. **Upload Reference Images to GCS**
+   - Maximum 6 images per generation
+   - Supported formats: JPG, PNG, WebP
+   - Maximum size: 10MB per image
+   - Optimal resolution: 720p-1080p
+
+2. **Add Reference URLs to Sheet**
+   ```
+   ref_pack_public_urls: [
+     "https://storage.googleapis.com/bucket/ref1.jpg",
+     "https://storage.googleapis.com/bucket/ref2.jpg"
+   ]
+   reference_mode: style_only
+   ```
+
+3. **Reference Best Practices**
+   - Use consistent style across reference images
+   - Higher quality references = better results
+   - Clear, uncluttered subjects work best
+   - Match lighting/mood to your prompt
+
 ## 🎨 Image Generation Workflow
 
 ### Step 1: Prepare Your Data
@@ -60,13 +93,15 @@ These columns exist but are not used yet:
    scene_id: SEQ01-001
    mode: sequence
    prompt: Cozy kitchen interior, warm lighting, coffee brewing
-   ref_pack_public_url: https://storage.googleapis.com/your-bucket/refs/...
+   ref_pack_public_urls: ["url1", "url2"] (optional, up to 6)
+   reference_mode: style_only (optional)
    ```
 
 2. **Validate Data**
    - Scene IDs must be unique
    - Prompts should be 10-1000 characters
-   - Reference URLs must be accessible
+   - Reference URLs must be accessible signed URLs
+   - Maximum 6 reference images per row
    - Status should be `queued` for new rows
 
 ### Step 2: Generate Images (Dry Run)

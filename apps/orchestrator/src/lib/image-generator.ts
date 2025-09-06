@@ -2,216 +2,107 @@ import sharp from 'sharp';
 import { putObject } from './gcs.js';
 import { env } from './env.js';
 import { logger } from './logger.js';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GeminiImageClient } from '@ai-platform/clients';
+import type { ReferenceMode } from '@ai-platform/shared';
 
-// Initialize Gemini AI with API key
-const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY ?? 'fallback-key');
+// GCS operations implementation for the client
+const gcsOperations = {
+  putObject: async (buffer: Buffer, contentType: string, path: string) => {
+    return await putObject(buffer, contentType, path);
+  },
+  
+  makeThumb: async (buffer: Buffer) => {
+    return await sharp(buffer)
+      .resize(128, 128, { fit: 'cover' })
+      .png()
+      .toBuffer();
+  },
+  
+  getImagePath: (sceneId: string, variantNum: number, isThumb: boolean) => {
+    return isThumb
+      ? `images/${sceneId}/variant_${variantNum}_thumb.png`
+      : `images/${sceneId}/variant_${variantNum}.png`;
+  },
+};
 
-// Model ID for Gemini 2.5 Flash Image (Nano Banana)
-const NANO_BANANA_MODEL = 'gemini-2.5-flash-image-preview';
+// Initialize Gemini client with GCS operations
+const geminiClient = new GeminiImageClient(
+  env.GEMINI_API_KEY ?? 'fallback-key',
+  gcsOperations
+);
 
 /**
- * Retry function with exponential backoff for API calls
+ * Generate and upload images with reference support
  */
-async function retry<T>(fn: () => Promise<T>, maxAttempts: number = 4): Promise<T> {
-  let attempt = 0;
-  while (true) {
-    try {
-      return await fn();
-    } catch (error: any) {
-      const status = error?.status ?? error?.code ?? 0;
-      const retryable = [429, 500, 502, 503, 504].includes(status);
-      
-      if (!retryable || ++attempt > maxAttempts) {
-        throw error;
+export async function generateAndUploadImages(
+  sceneId: string,
+  prompt: string,
+  variants: number,
+  referenceImages?: string[],
+  referenceMode?: ReferenceMode
+): Promise<Array<{ url: string; thumbnailUrl?: string }>> {
+  try {
+    logger.info({ 
+      sceneId, 
+      prompt: prompt.substring(0, 50), 
+      variants,
+      referenceCount: referenceImages?.length ?? 0,
+      referenceMode 
+    }, 'Starting image generation');
+
+    // Check if we should use real Gemini API or return empty for dry run
+    if (!env.GEMINI_API_KEY || env.GEMINI_API_KEY === 'test-api-key' || env.RUN_MODE !== 'live') {
+      logger.info({ sceneId }, 'Dry run mode - skipping actual generation');
+      // Return placeholder URLs for dry run
+      return Array.from({ length: variants }, (_, i) => ({
+        url: `https://placeholder.com/${sceneId}/variant_${i + 1}.png`,
+        thumbnailUrl: `https://placeholder.com/${sceneId}/variant_${i + 1}_thumb.png`,
+      }));
+    }
+
+    // Generate images using the new client
+    const params: any = {
+      sceneId,
+      prompt,
+      variants,
+    };
+    
+    if (referenceImages) {
+      params.referenceImages = referenceImages;
+    }
+    
+    if (referenceMode) {
+      params.referenceMode = referenceMode;
+    }
+    
+    const result = await geminiClient.generateImages(params);
+
+    // Map results to expected format
+    const mappedImages: Array<{ url: string; thumbnailUrl?: string }> = [];
+    for (const img of result.images) {
+      const mapped: { url: string; thumbnailUrl?: string } = { url: img.signedUrl };
+      if (img.thumbnailUrl) {
+        mapped.thumbnailUrl = img.thumbnailUrl;
       }
-      
-      const backoff = Math.min(2000 * Math.pow(2, attempt), 15000) + Math.random() * 250;
-      logger.warn({ attempt, backoff, error: error.message }, 'Retrying Gemini API call');
-      await new Promise(resolve => setTimeout(resolve, backoff));
+      mappedImages.push(mapped);
     }
+    return mappedImages;
+
+  } catch (error) {
+    logger.error({ error, sceneId }, 'Failed to generate images');
+    throw error;
   }
 }
 
 /**
- * Generate an image using Gemini 2.5 Flash (Nano Banana)
- */
-async function generateNanoBananaImage(prompt: string): Promise<Buffer> {
-  const model = genAI.getGenerativeModel({ model: NANO_BANANA_MODEL });
-  
-  // Call generateContent with the prompt (no "Generate an image:" prefix needed)
-  const result = await retry(async () => {
-    return await model.generateContent(prompt);
-  });
-  
-  // Extract image from response
-  const response = result.response;
-  const candidates = response.candidates;
-  
-  if (!candidates || candidates.length === 0) {
-    throw new Error('No candidates returned from Gemini');
-  }
-  
-  const parts = candidates[0]?.content?.parts;
-  if (!parts || parts.length === 0) {
-    throw new Error('No parts in candidate response');
-  }
-  
-  // Find the image part (inlineData) - iterate through all parts
-  let imagePart = null;
-  for (const part of parts) {
-    if (part.inlineData && part.inlineData.data) {
-      imagePart = part;
-      break;
-    }
-  }
-  
-  if (!imagePart || !imagePart.inlineData?.data) {
-    // Log the actual response structure for debugging
-    logger.warn({ 
-      candidatesCount: candidates.length, 
-      partsCount: parts.length,
-      partTypes: parts.map((p: any) => Object.keys(p))
-    }, 'No image data found in Gemini response');
-    throw new Error('No image data returned from Nano Banana');
-  }
-  
-  // Convert base64 to Buffer
-  const imageBuffer = Buffer.from(imagePart.inlineData.data, 'base64');
-  logger.info({ size: imageBuffer.length }, 'Successfully extracted image from Gemini response');
-  return imageBuffer;
-}
-
-/**
- * Generate a placeholder SVG image with the prompt text (fallback)
- */
-function generatePlaceholderSVG(prompt: string, sceneId: string, variant: number): string {
-  const colors = [
-    ['#FF6B6B', '#4ECDC4'],
-    ['#45B7D1', '#FFA07A'],
-    ['#98D8C8', '#F7DC6F'],
-    ['#BB8FCE', '#85C1E2'],
-    ['#F8B739', '#52C234']
-  ];
-  
-  const colorPair = colors[(variant - 1) % colors.length];
-  if (!colorPair) {
-    throw new Error('Invalid color pair');
-  }
-  const truncatedPrompt = prompt.length > 100 ? prompt.substring(0, 97) + '...' : prompt;
-  
-  return `
-    <svg width="1024" height="1024" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="grad${variant}" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" style="stop-color:${colorPair[0]};stop-opacity:1" />
-          <stop offset="100%" style="stop-color:${colorPair[1]};stop-opacity:1" />
-        </linearGradient>
-        <pattern id="pattern${variant}" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
-          <circle cx="50" cy="50" r="2" fill="white" opacity="0.1"/>
-        </pattern>
-      </defs>
-      
-      <rect width="1024" height="1024" fill="url(#grad${variant})"/>
-      <rect width="1024" height="1024" fill="url(#pattern${variant})"/>
-      
-      <text x="512" y="450" font-family="Arial, sans-serif" font-size="28" fill="white" 
-            text-anchor="middle" font-weight="bold" opacity="0.9">
-        ${sceneId}
-      </text>
-      
-      <text x="512" y="490" font-family="Arial, sans-serif" font-size="20" fill="white" 
-            text-anchor="middle" opacity="0.7">
-        Variant ${variant}
-      </text>
-      
-      <foreignObject x="100" y="520" width="824" height="200">
-        <div xmlns="http://www.w3.org/1999/xhtml" style="
-          color: white;
-          font-family: Arial, sans-serif;
-          font-size: 16px;
-          text-align: center;
-          line-height: 1.5;
-          opacity: 0.8;
-          word-wrap: break-word;
-        ">
-          ${truncatedPrompt.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
-        </div>
-      </foreignObject>
-      
-      <text x="512" y="980" font-family="Arial, sans-serif" font-size="14" fill="white" 
-            text-anchor="middle" opacity="0.5">
-        Generated: ${new Date().toISOString()}
-      </text>
-    </svg>
-  `;
-}
-
-/**
- * Generate and upload an image to GCS
+ * Legacy function for backward compatibility - generates single image without references
+ * @deprecated Use generateAndUploadImages instead
  */
 export async function generateAndUploadImage(
   sceneId: string,
   prompt: string,
   variant: number
 ): Promise<{ url: string; thumbnailUrl?: string }> {
-  try {
-    logger.info({ sceneId, prompt: prompt.substring(0, 50), variant }, 'Generating image with Nano Banana');
-    
-    let imageBuffer: Buffer;
-    let mimeType: string = 'image/png';
-    
-    // Check if we should use real Gemini API or placeholder
-    if (env.GEMINI_API_KEY && env.GEMINI_API_KEY !== 'test-api-key' && env.RUN_MODE === 'live') {
-      try {
-        // Use Nano Banana (Gemini 2.5 Flash Image) to generate real image
-        logger.info({ sceneId, variant }, 'Calling Gemini 2.5 Flash Image API (Nano Banana)');
-        imageBuffer = await generateNanoBananaImage(prompt);
-        logger.info({ sceneId, variant, size: imageBuffer.length }, 'Successfully generated image with Nano Banana');
-      } catch (geminiError: any) {
-        logger.warn({ error: geminiError.message, sceneId, variant }, 'Nano Banana generation failed, using placeholder');
-        // Fall back to placeholder
-        const svg = generatePlaceholderSVG(prompt, sceneId, variant);
-        imageBuffer = await sharp(Buffer.from(svg)).png().toBuffer();
-      }
-    } else {
-      // Use placeholder SVG for testing or dry run
-      logger.info({ sceneId, variant }, 'Using placeholder image (dry run mode or test API key)');
-      const svg = generatePlaceholderSVG(prompt, sceneId, variant);
-      imageBuffer = await sharp(Buffer.from(svg)).png().toBuffer();
-    }
-    
-    // Generate thumbnail (128px)
-    const thumbnailBuffer = await sharp(imageBuffer)
-      .resize(128, 128, { fit: 'cover' })
-      .png()
-      .toBuffer();
-    
-    // Upload main image
-    const mainImagePath = `images/${sceneId}/variant_${variant}.png`;
-    const mainResult = await putObject(
-      imageBuffer,
-      mimeType,
-      mainImagePath
-    );
-    
-    // Upload thumbnail
-    const thumbnailPath = `images/${sceneId}/variant_${variant}_thumb.png`;
-    const thumbnailResult = await putObject(
-      thumbnailBuffer,
-      'image/png',
-      thumbnailPath
-    );
-    
-    logger.info({ sceneId, variant, mainUrl: mainResult.signedUrl, thumbnailUrl: thumbnailResult.signedUrl }, 'Image generated and uploaded');
-    
-    return {
-      url: mainResult.signedUrl,
-      thumbnailUrl: thumbnailResult.signedUrl
-    };
-    
-  } catch (error) {
-    logger.error({ error, sceneId, variant }, 'Failed to generate/upload image');
-    throw error;
-  }
+  const results = await generateAndUploadImages(sceneId, prompt, 1);
+  return results[0] || { url: '', thumbnailUrl: '' };
 }

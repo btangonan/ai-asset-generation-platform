@@ -7,11 +7,15 @@ export const VeoModelSchema = z.enum(['veo3', 'veo3_fast']);
 export const AspectSchema = z.enum(['16:9', '9:16']);
 export const ResolutionSchema = z.union([z.literal(720), z.literal(1080)]);
 
+// Reference image schemas
+export const ReferenceModeSchema = z.enum(['style_only', 'style_and_composition']);
+
 // Image batch schemas (Phase 1 - active)
 export const ImageBatchItemSchema = z.object({
   scene_id: z.string().min(1).max(50),
   prompt: z.string().min(1).max(1000),
   ref_pack_public_urls: z.array(z.string().url()).max(6).optional(), // Support up to 6 reference images
+  reference_mode: ReferenceModeSchema.optional().default('style_only'),
   variants: z.number().int().min(1).max(3),
 }).strict(); // Reject additional properties for security
 
@@ -81,3 +85,33 @@ export const JobStatusSchema = z.object({
   outputs: z.array(z.string().url()),
   error: z.string().optional(),
 });
+
+// Image generation schemas with reference support
+export const GenerateImagesParamsSchema = z.object({
+  sceneId: z.string().min(1).max(50),
+  prompt: z.string().min(1).max(1000),
+  variants: z.number().int().min(1).max(3),
+  referenceImages: z.array(z.string().url()).max(6).optional(),
+  referenceMode: ReferenceModeSchema.optional(),
+}).strict();
+
+export const GeneratedImageSchema = z.object({
+  variantNumber: z.number().int().min(1),
+  gcsUri: z.string().regex(/^gs:\/\//),
+  signedUrl: z.string().url(),
+  thumbnailUrl: z.string().url().optional(),
+  metadata: z.object({
+    width: z.number().int().positive(),
+    height: z.number().int().positive(),
+    sizeBytes: z.number().int().positive(),
+    mimeType: z.string(),
+  }).optional(),
+}).strict();
+
+export const GenerateImagesResultSchema = z.object({
+  sceneId: z.string(),
+  images: z.array(GeneratedImageSchema),
+  processingTimeMs: z.number().int().positive(),
+  referenceImagesUsed: z.array(z.string()).optional(),
+  error: z.string().optional(),
+}).strict();

@@ -95,6 +95,8 @@ export async function sheetsRoutes(
       const promptCol = headers.indexOf('prompt');
       const variantsCol = headers.indexOf('variants');
       const statusCol = headers.indexOf('status_img');
+      const referenceModeCol = headers.indexOf('reference_mode');
+      const refPackUrlsCol = headers.indexOf('ref_pack_public_urls');
       
       // Process data rows
       const dataRows = [];
@@ -122,12 +124,29 @@ export async function sheetsRoutes(
           }
         }
         
+        // Get reference fields if columns exist
+        const referenceModeRaw = referenceModeCol >= 0 ? String(row[referenceModeCol] || 'style_only') : 'style_only';
+        const referenceMode = (referenceModeRaw === 'style_and_composition' ? 'style_and_composition' : 'style_only') as 'style_only' | 'style_and_composition';
+        const refPackUrlsRaw = refPackUrlsCol >= 0 ? row[refPackUrlsCol] : undefined;
+        
+        // Parse ref_pack_public_urls if it's a JSON array string
+        let refPackUrls;
+        if (refPackUrlsRaw) {
+          try {
+            refPackUrls = typeof refPackUrlsRaw === 'string' ? JSON.parse(refPackUrlsRaw) : refPackUrlsRaw;
+          } catch {
+            refPackUrls = undefined;
+          }
+        }
+        
         dataRows.push({
           rowIndex: i + 1, // 1-based row index for Sheet
           scene_id: sceneId,
           prompt: prompt,
           variants: Math.min(Math.max(variants, 1), 3), // Clamp between 1-3
-          currentStatus: status
+          currentStatus: status,
+          reference_mode: referenceMode,
+          ref_pack_public_urls: refPackUrls
         });
         
         if (dataRows.length >= rowFilter.limit) break;
@@ -145,7 +164,9 @@ export async function sheetsRoutes(
       const items = dataRows.map(r => ({
         scene_id: r.scene_id,
         prompt: r.prompt,
-        variants: r.variants
+        variants: r.variants,
+        reference_mode: r.reference_mode || 'style_only',
+        ref_pack_public_urls: r.ref_pack_public_urls
       }));
       const estimatedCost = costCalculator.estimateImageBatch(items);
       
@@ -203,7 +224,9 @@ export async function sheetsRoutes(
           const rowCost = costCalculator.estimateImageBatch([{
             scene_id: row.scene_id,
             prompt: row.prompt,
-            variants: row.variants
+            variants: row.variants,
+            reference_mode: row.reference_mode || 'style_only',
+            ref_pack_public_urls: row.ref_pack_public_urls
           }]);
           
           // Update sheet with results

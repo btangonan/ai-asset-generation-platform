@@ -24,11 +24,10 @@ async function processImageJob(message: Message): Promise<void> {
     
     // Generate images using Gemini client
     const result = await geminiImageClient.generateImages({
-      prompt,
-      refPackUrls,
-      variants,
       sceneId,
-      jobId,
+      prompt,
+      variants,
+      referenceImages: refPackUrls,
     });
     
     // Update sheet with generated image URLs (thumbnails)

@@ -1,13 +1,17 @@
 import { GeminiImageClient, type GCSOperations } from '@ai-platform/clients';
 import { env } from './env.js';
-import { putObject, makeThumb, getImagePath, downloadUrl } from './gcs.js';
+import { putObject, makeThumb, getImagePath } from './gcs.js';
 
 // Create GCS operations adapter for the Gemini client
 const gcsOperations: GCSOperations = {
   putObject,
   makeThumb,
-  getImagePath,
-  downloadUrl,
+  // Adapter for getImagePath - new interface doesn't use jobId
+  getImagePath: (sceneId: string, variantNum: number, isThumb: boolean) => {
+    // Generate a pseudo jobId based on sceneId for backward compatibility
+    const jobId = `job_${sceneId}_${Date.now()}`;
+    return getImagePath(sceneId, jobId, variantNum, isThumb);
+  },
 };
 
 // Initialize Gemini Image Client with GCS operations

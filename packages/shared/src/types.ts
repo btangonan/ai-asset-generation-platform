@@ -12,6 +12,9 @@ export type RunMode = 'dry_run' | 'live';
 export type ImageStatus = 'queued' | 'running' | 'awaiting_review' | 'error';
 export type VideoStatus = 'ready_to_queue' | 'queued' | 'running' | 'done' | 'error';
 
+// Reference image support types
+export type ReferenceMode = 'style_only' | 'style_and_composition';
+
 export type Mode = 'variation' | 'sequence';
 export type VeoModel = 'veo3' | 'veo3_fast';
 export type Aspect = '16:9' | '9:16';
@@ -58,6 +61,36 @@ export interface SheetRow {
   // Job tracking
   job_id?: string;
   locked_by?: string;  // User email
+}
+
+// Image generation types with reference support
+export interface GenerateImagesParams {
+  sceneId: string;
+  prompt: string;
+  variants: number;
+  referenceImages?: string[];  // GCS URLs or signed URLs
+  referenceMode?: ReferenceMode;
+}
+
+export interface GeneratedImage {
+  variantNumber: number;
+  gcsUri: string;
+  signedUrl: string;
+  thumbnailUrl?: string;
+  metadata?: {
+    width: number;
+    height: number;
+    sizeBytes: number;
+    mimeType: string;
+  };
+}
+
+export interface GenerateImagesResult {
+  sceneId: string;
+  images: GeneratedImage[];
+  processingTimeMs: number;
+  referenceImagesUsed?: string[];
+  error?: string;
 }
 
 // API response types
