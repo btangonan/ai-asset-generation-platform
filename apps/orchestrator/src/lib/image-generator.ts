@@ -41,13 +41,7 @@ async function generateNanoBananaImage(prompt: string): Promise<Buffer> {
   
   // Call generateContent with the prompt
   const result = await retry(async () => {
-    return await model.generateContent({
-      contents: [{
-        parts: [{
-          text: `Generate an image: ${prompt}`
-        }]
-      }]
-    });
+    return await model.generateContent(`Generate an image: ${prompt}`);
   });
   
   // Extract image from response
@@ -88,6 +82,9 @@ function generatePlaceholderSVG(prompt: string, sceneId: string, variant: number
   ];
   
   const colorPair = colors[(variant - 1) % colors.length];
+  if (!colorPair) {
+    throw new Error('Invalid color pair');
+  }
   const truncatedPrompt = prompt.length > 100 ? prompt.substring(0, 97) + '...' : prompt;
   
   return `

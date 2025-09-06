@@ -12,6 +12,10 @@ const envSchema = z.object({
   // Storage
   GCS_BUCKET: z.string(),
   SIGNED_URL_EXPIRY_DAYS: z.coerce.number().default(7),
+  SIGNED_URL_DAYS: z.coerce.number().default(7),
+  
+  // Image processing
+  SHARP_CONCURRENCY: z.coerce.number().default(4),
   
   // Pub/Sub
   PUBSUB_TOPIC_IMAGES: z.string().default('image-processing'),
@@ -33,6 +37,11 @@ const envSchema = z.object({
   // Cost controls
   RUN_MODE: z.enum(['dry_run', 'live']).default('dry_run'),
   DAILY_BUDGET_USD: z.coerce.number().default(100),
+  
+  // Authentication - API Keys for client access
+  AI_PLATFORM_API_KEY_1: z.string().optional(),
+  AI_PLATFORM_API_KEY_2: z.string().optional(),
+  AI_PLATFORM_API_KEY_3: z.string().optional(),
 });
 
 export const env = envSchema.parse(process.env);

@@ -49,14 +49,7 @@ async function getOrCreateSubscription(
   const [exists] = await subscription.exists();
   
   if (!exists) {
-    await subscription.create({
-      ackDeadlineSeconds: 600, // 10 minutes for image generation
-      maxRetries: 5,
-      retryPolicy: {
-        minimumBackoff: { seconds: 10 },
-        maximumBackoff: { seconds: 600 },
-      },
-    });
+    await subscription.create();
     logger.info({ subscriptionName }, 'Created Pub/Sub subscription');
   }
   
@@ -87,7 +80,7 @@ export async function publishImageJob(job: ImageJobMessage): Promise<string> {
     return messageId;
   } catch (error) {
     logger.error({ error, jobId: job.jobId }, 'Failed to publish job');
-    throw new Error(`Failed to publish job: ${error.message}`);
+    throw new Error(`Failed to publish job: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -125,6 +118,6 @@ export async function publishImageJobBatch(jobs: ImageJobMessage[]): Promise<str
     return messageIds;
   } catch (error) {
     logger.error({ error, count: jobs.length }, 'Failed to publish batch');
-    throw new Error(`Failed to publish batch: ${error.message}`);
+    throw new Error(`Failed to publish batch: ${error instanceof Error ? error.message : String(error)}`);
   }
 }

@@ -4,11 +4,27 @@ import { statusRoutes } from './routes/status.js';
 import { videosRoutes } from './routes/videos.js';
 import { healthRoutes } from './routes/health.js';
 import { sheetsRoutes } from './routes/sheets.js';
+import { sendProblemDetails, Problems } from './lib/problem-details.js';
+import { authenticateRequest, validateAuthConfiguration } from './lib/auth.js';
+import { env } from './lib/env.js';
 
 export async function createServer(
   fastify: FastifyInstance,
   _options: FastifyPluginOptions
 ) {
+  // Validate authentication configuration on startup
+  if (env.NODE_ENV !== 'test') {
+    const authConfig = validateAuthConfiguration();
+    if (!authConfig.valid) {
+      fastify.log.error({ errors: authConfig.errors }, 'Authentication configuration invalid');
+      throw new Error(`Authentication setup failed: ${authConfig.errors.join(', ')}`);
+    }
+    fastify.log.info('Authentication configuration validated successfully');
+  }
+
+  // Global authentication middleware (runs before all routes)
+  fastify.addHook('preHandler', authenticateRequest);
+
   // Test route
   fastify.get('/test', async (request, reply) => {
     return { message: 'Server is working!' };
@@ -28,24 +44,25 @@ export async function createServer(
     fastify.log.error(error);
 
     if (error.validation) {
-      return reply.status(400).send({
-        error: 'VALIDATION_ERROR',
-        message: 'Invalid request data',
-        details: error.validation,
+      return sendProblemDetails(reply, {
+        type: 'https://api.ai-platform.com/problems/validation-error',
+        title: 'Validation Error',
+        status: 400,
+        detail: 'Invalid request data',
+        validationErrors: error.validation,
       });
     }
 
     if (error.statusCode && error.statusCode < 500) {
-      return reply.status(error.statusCode).send({
-        error: error.code || 'CLIENT_ERROR',
-        message: error.message,
+      return sendProblemDetails(reply, {
+        type: 'https://api.ai-platform.com/problems/client-error',
+        title: error.code || 'Client Error',
+        status: error.statusCode,
+        detail: error.message,
       });
     }
 
     // Internal server error
-    return reply.status(500).send({
-      error: 'INTERNAL_SERVER_ERROR',
-      message: 'An unexpected error occurred',
-    });
+    return sendProblemDetails(reply, Problems.internalError('An unexpected error occurred'));
   });
 }

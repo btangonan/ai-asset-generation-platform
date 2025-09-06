@@ -116,7 +116,7 @@ describe('E2E: Complete Image Generation Workflow', () => {
     expect(response.statusCode).toBe(400);
     
     const data = JSON.parse(response.body);
-    expect(data.error).toBeDefined();
+    expect(data.type).toBeDefined();
   });
 
   it('should enforce rate limiting across requests', async () => {

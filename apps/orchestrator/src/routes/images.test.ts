@@ -70,7 +70,7 @@ describe('Images Routes', () => {
       expect(response.statusCode).toBe(400);
       
       const data = JSON.parse(response.body);
-      expect(data.error).toBe('INVALID_REQUEST_SCHEMA');
+      expect(data.type).toBe('https://api.ai-platform.com/problems/invalid-request-schema');
     });
 
     it('should reject invalid variants count', async () => {
@@ -93,7 +93,7 @@ describe('Images Routes', () => {
       expect(response.statusCode).toBe(400);
       
       const data = JSON.parse(response.body);
-      expect(data.error).toBe('INVALID_REQUEST_SCHEMA');
+      expect(data.type).toBe('https://api.ai-platform.com/problems/invalid-request-schema');
     });
 
     it('should reject malformed schema', async () => {
@@ -118,7 +118,7 @@ describe('Images Routes', () => {
       expect(response.statusCode).toBe(400);
       
       const data = JSON.parse(response.body);
-      expect(data.error).toBe('INVALID_REQUEST_SCHEMA');
+      expect(data.type).toBe('https://api.ai-platform.com/problems/invalid-request-schema');
     });
 
     it('should bypass rate limiting in test mode', async () => {

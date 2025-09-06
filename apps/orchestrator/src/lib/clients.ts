@@ -1,4 +1,4 @@
-import { GeminiImageClient, type GCSOperations } from '@vertex-system/clients';
+import { GeminiImageClient, type GCSOperations } from '@ai-platform/clients';
 import { env } from './env.js';
 import { putObject, makeThumb, getImagePath, downloadUrl } from './gcs.js';
 

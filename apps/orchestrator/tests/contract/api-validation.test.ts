@@ -54,7 +54,7 @@ describe('Contract Tests: API Input Validation', () => {
 
         expect(response.statusCode).toBe(400);
         const data = JSON.parse(response.body);
-        expect(data.error).toBe('INVALID_REQUEST_SCHEMA');
+        expect(data.type).toBe('https://api.ai-platform.com/problems/invalid-request-schema');
       });
 
       it('should reject scene_id too long (>50 chars)', async () => {
@@ -74,7 +74,7 @@ describe('Contract Tests: API Input Validation', () => {
 
         expect(response.statusCode).toBe(400);
         const data = JSON.parse(response.body);
-        expect(data.error).toBe('INVALID_REQUEST_SCHEMA');
+        expect(data.type).toBe('https://api.ai-platform.com/problems/invalid-request-schema');
       });
     });
 
@@ -96,7 +96,7 @@ describe('Contract Tests: API Input Validation', () => {
 
         expect(response.statusCode).toBe(400);
         const data = JSON.parse(response.body);
-        expect(data.error).toBe('INVALID_REQUEST_SCHEMA');
+        expect(data.type).toBe('https://api.ai-platform.com/problems/invalid-request-schema');
       });
 
       it('should reject prompt too long (>1000 chars)', async () => {
@@ -116,7 +116,7 @@ describe('Contract Tests: API Input Validation', () => {
 
         expect(response.statusCode).toBe(400);
         const data = JSON.parse(response.body);
-        expect(data.error).toBe('INVALID_REQUEST_SCHEMA');
+        expect(data.type).toBe('https://api.ai-platform.com/problems/invalid-request-schema');
       });
     });
 
@@ -138,7 +138,7 @@ describe('Contract Tests: API Input Validation', () => {
 
         expect(response.statusCode).toBe(400);
         const data = JSON.parse(response.body);
-        expect(data.error).toBe('INVALID_REQUEST_SCHEMA');
+        expect(data.type).toBe('https://api.ai-platform.com/problems/invalid-request-schema');
       });
     });
 
@@ -160,7 +160,7 @@ describe('Contract Tests: API Input Validation', () => {
 
         expect(response.statusCode).toBe(400);
         const data = JSON.parse(response.body);
-        expect(data.error).toBe('INVALID_REQUEST_SCHEMA');
+        expect(data.type).toBe('https://api.ai-platform.com/problems/invalid-request-schema');
       });
 
       it('should reject variants > 3', async () => {
@@ -180,7 +180,7 @@ describe('Contract Tests: API Input Validation', () => {
 
         expect(response.statusCode).toBe(400);
         const data = JSON.parse(response.body);
-        expect(data.error).toBe('INVALID_REQUEST_SCHEMA');
+        expect(data.type).toBe('https://api.ai-platform.com/problems/invalid-request-schema');
       });
 
       it('should reject non-integer variants', async () => {
@@ -200,7 +200,7 @@ describe('Contract Tests: API Input Validation', () => {
 
         expect(response.statusCode).toBe(400);
         const data = JSON.parse(response.body);
-        expect(data.error).toBe('INVALID_REQUEST_SCHEMA');
+        expect(data.type).toBe('https://api.ai-platform.com/problems/invalid-request-schema');
       });
     });
 
@@ -219,7 +219,7 @@ describe('Contract Tests: API Input Validation', () => {
 
         expect(response.statusCode).toBe(400);
         const data = JSON.parse(response.body);
-        expect(data.error).toBe('INVALID_REQUEST_SCHEMA');
+        expect(data.type).toBe('https://api.ai-platform.com/problems/invalid-request-schema');
       });
 
       it('should reject > 10 items in batch', async () => {
@@ -236,7 +236,7 @@ describe('Contract Tests: API Input Validation', () => {
 
         expect(response.statusCode).toBe(400);
         const data = JSON.parse(response.body);
-        expect(data.error).toBe('INVALID_REQUEST_SCHEMA');
+        expect(data.type).toBe('https://api.ai-platform.com/problems/invalid-request-schema');
       });
     });
 
@@ -285,7 +285,7 @@ describe('Contract Tests: API Input Validation', () => {
 
         expect(response.statusCode).toBe(400);
         const data = JSON.parse(response.body);
-        expect(data.error).toBe('INVALID_REQUEST_SCHEMA');
+        expect(data.type).toBe('https://api.ai-platform.com/problems/invalid-request-schema');
       });
 
       it('should default to dry_run when runMode omitted', async () => {
@@ -337,7 +337,7 @@ describe('Contract Tests: API Input Validation', () => {
       // Should return 400 because this doesn't match ImageBatchItemSchema
       expect(response.statusCode).toBe(400);
       const data = JSON.parse(response.body);
-      expect(data.error).toBe('INVALID_REQUEST_SCHEMA');
+      expect(data.type).toBe('https://api.ai-platform.com/problems/invalid-request-schema');
     });
 
     it('should reject bad veo_model values', async () => {
@@ -366,7 +366,7 @@ describe('Contract Tests: API Input Validation', () => {
       // Should return 400 because this doesn't match ImageBatchItemSchema
       expect(response.statusCode).toBe(400);
       const data = JSON.parse(response.body);
-      expect(data.error).toBe('INVALID_REQUEST_SCHEMA');
+      expect(data.type).toBe('https://api.ai-platform.com/problems/invalid-request-schema');
     });
 
     it('should reject bad aspect ratio values', async () => {
@@ -395,7 +395,7 @@ describe('Contract Tests: API Input Validation', () => {
       // Should return 400 because this doesn't match ImageBatchItemSchema
       expect(response.statusCode).toBe(400);
       const data = JSON.parse(response.body);
-      expect(data.error).toBe('INVALID_REQUEST_SCHEMA');
+      expect(data.type).toBe('https://api.ai-platform.com/problems/invalid-request-schema');
     });
 
     it('should reject bad resolution values', async () => {
@@ -424,7 +424,7 @@ describe('Contract Tests: API Input Validation', () => {
       // Should return 400 because this doesn't match ImageBatchItemSchema
       expect(response.statusCode).toBe(400);
       const data = JSON.parse(response.body);
-      expect(data.error).toBe('INVALID_REQUEST_SCHEMA');
+      expect(data.type).toBe('https://api.ai-platform.com/problems/invalid-request-schema');
     });
   });
 
@@ -450,7 +450,7 @@ describe('Contract Tests: API Input Validation', () => {
 
       expect(response.statusCode).toBe(400);
       const data = JSON.parse(response.body);
-      expect(data.error).toBe('INVALID_REQUEST_SCHEMA');
+      expect(data.type).toBe('https://api.ai-platform.com/problems/invalid-request-schema');
     });
 
     it('should reject request missing items array', async () => {
@@ -467,7 +467,7 @@ describe('Contract Tests: API Input Validation', () => {
 
       expect(response.statusCode).toBe(400);
       const data = JSON.parse(response.body);
-      expect(data.error).toBe('INVALID_REQUEST_SCHEMA');
+      expect(data.type).toBe('https://api.ai-platform.com/problems/invalid-request-schema');
     });
   });
 });

@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Generation Sidebar</title>
+  <style>
+    /* Reset and base styles */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Google Sans', Roboto, sans-serif;
+      font-size: 13px;
+      line-height: 1.4;
+      color: #202124;
+      background-color: #fff;
+      padding: 16px;
+    }
+    
+    /* Layout components */
+    .section {
+      margin-bottom: 20px;
+      border: 1px solid #dadce0;
+      border-radius: 8px;
+      padding: 12px;
+    }
+    
+    .section-header {
+      font-weight: 500;
+      font-size: 14px;
+      color: #1a73e8;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .section-content {
+      font-size: 12px;
+      color: #5f6368;
+    }
+    
+    /* Buttons */
+    .button {
+      background-color: #1a73e8;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      transition: background-color 0.2s;
+    }
+    
+    .button:hover {
+      background-color: #1557b0;
+    }
+    
+    .button:disabled {
+      background-color: #dadce0;
+      color: #5f6368;
+      cursor: not-allowed;
+    }
+    
+    .button-secondary {
+      background-color: #f8f9fa;
+      color: #1a73e8;
+      border: 1px solid #dadce0;
+    }
+    
+    .button-secondary:hover {
+      background-color: #e8f0fe;
+    }
+    
+    .button-small {
+      padding: 4px 8px;
+      font-size: 11px;
+    }
+    
+    /* Selection display */
+    .row-item {
+      background: #f8f9fa;
+      border: 1px solid #e8eaed;
+      border-radius: 4px;
+      padding: 8px;
+      margin-bottom: 6px;
+    }
+    
+    .row-header {
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+    
+    .row-details {
+      font-size: 11px;
+      color: #5f6368;
+      margin-bottom: 4px;
+    }
+    
+    .row-prompt {
+      font-size: 11px;
+      line-height: 1.3;
+      max-height: 40px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    /* Thumbnail gallery */
+    .thumbnails {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+      gap: 8px;
+      margin-top: 8px;
+    }
+    
+    .thumbnail {
+      position: relative;
+      border: 2px solid #dadce0;
+      border-radius: 4px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    
+    .thumbnail:hover {
+      border-color: #1a73e8;
+    }
+    
+    .thumbnail.selected {
+      border-color: #1a73e8;
+      box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2);
+    }
+    
+    .thumbnail img {
+      width: 100%;
+      height: 60px;
+      object-fit: cover;
+      display: block;
+    }
+    
+    .thumbnail-placeholder {
+      width: 100%;
+      height: 60px;
+      background: #f1f3f4;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: #5f6368;
+    }
+    
+    .thumbnail-label {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 2px 4px;
+      font-size: 9px;
+      text-align: center;
+    }
+    
+    /* Cost display */
+    .cost-summary {
+      background: #e8f0fe;
+      border: 1px solid #aecbfa;
+      border-radius: 4px;
+      padding: 8px;
+      text-align: center;
+    }
+    
+    .cost-amount {
+      font-size: 16px;
+      font-weight: 500;
+      color: #1a73e8;
+      margin-bottom: 2px;
+    }
+    
+    .cost-breakdown {
+      font-size: 10px;
+      color: #5f6368;
+    }
+    
+    /* Status indicators */
+    .status {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 12px;
+      font-size: 10px;
+      font-weight: 500;
+      text-transform: uppercase;
+    }
+    
+    .status-pending { background: #fef7e0; color: #ea8600; }
+    .status-running { background: #e8f0fe; color: #1a73e8; }
+    .status-completed { background: #e6f4ea; color: #137333; }
+    .status-error { background: #fce8e6; color: #d93025; }
+    
+    /* Empty states */
+    .empty-state {
+      text-align: center;
+      color: #5f6368;
+      padding: 20px;
+      font-size: 12px;
+    }
+    
+    .empty-state-icon {
+      font-size: 24px;
+      margin-bottom: 8px;
+      opacity: 0.5;
+    }
+    
+    /* Loading states */
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      color: #5f6368;
+    }
+    
+    .loading::before {
+      content: '';
+      width: 16px;
+      height: 16px;
+      border: 2px solid #dadce0;
+      border-top: 2px solid #1a73e8;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 8px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    /* Error states */
+    .error {
+      background: #fce8e6;
+      border: 1px solid #f2b8b5;
+      color: #d93025;
+      padding: 8px;
+      border-radius: 4px;
+      font-size: 11px;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 300px) {
+      .thumbnails {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      
+      .section {
+        padding: 8px;
+      }
+      
+      body {
+        padding: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Selection Summary Section -->
+  <div class="section" id="selection-section">
+    <div class="section-header">
+      📝 Selection Summary
+      <button class="button button-secondary button-small" onclick="refreshSelection()">
+        Refresh
+      </button>
+    </div>
+    <div class="section-content">
+      <div id="selection-content">
+        <!-- Selection content will be populated here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Cost Preview Section -->
+  <div class="section" id="cost-section">
+    <div class="section-header">💰 Cost Preview</div>
+    <div class="section-content">
+      <div id="cost-content" class="cost-summary">
+        <div class="cost-amount">$0.0000</div>
+        <div class="cost-breakdown">0 images × $0.002</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Thumbnail Approval Section -->
+  <div class="section" id="thumbnails-section" style="display: none;">
+    <div class="section-header">🖼️ Thumbnail Approval</div>
+    <div class="section-content">
+      <div id="single-row-info">
+        <!-- Single row info will be shown here -->
+      </div>
+      <div id="thumbnails-grid" class="thumbnails">
+        <!-- Thumbnails will be populated here -->
+      </div>
+      <div style="margin-top: 12px; text-align: center;">
+        <button class="button" id="approve-button" onclick="approveSelected()" disabled>
+          ✓ Approve Selected
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Help Section -->
+  <div class="section">
+    <div class="section-header">❓ Help</div>
+    <div class="section-content">
+      <div style="font-size: 11px; line-height: 1.4;">
+        <p><strong>Usage:</strong></p>
+        <p>1. Select rows in the sheet</p>
+        <p>2. Use AI menu for generation</p>
+        <p>3. Review thumbnails here</p>
+        <p>4. Click to approve for video</p>
+        <br>
+        <p><strong>Cost:</strong> $0.002 per image</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentSelection = [];
+    let selectedThumbnail = null;
+    let selectedRow = null;
+
+    // Initialize the sidebar
+    function initSidebar() {
+      refreshSelection();
+    }
+
+    // Refresh the current selection
+    function refreshSelection() {
+      showLoading('selection-content');
+      
+      google.script.run
+        .withSuccessHandler(handleSelectionData)
+        .withFailureHandler(handleError)
+        .getSelectionSnapshot();
+    }
+
+    // Handle selection data from Apps Script
+    function handleSelectionData(data) {
+      if (!data.success) {
+        showError('selection-content', data.error || 'Failed to get selection');
+        return;
+      }
+
+      currentSelection = data.rows || [];
+      updateSelectionDisplay();
+      updateCostDisplay(data.totalCost || 0);
+      updateThumbnailSection();
+    }
+
+    // Update the selection display
+    function updateSelectionDisplay() {
+      const container = document.getElementById('selection-content');
+      
+      if (currentSelection.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">📋</div>
+            <div>No rows selected</div>
+            <div style="font-size: 10px; margin-top: 4px;">Select rows in the sheet to get started</div>
+          </div>
+        `;
+        return;
+      }
+
+      const html = currentSelection.map(row => `
+        <div class="row-item">
+          <div class="row-header">
+            ${escapeHtml(row.scene_id)}
+            <span class="status status-${(row.status_img || 'pending').toLowerCase()}">
+              ${row.status_img || 'pending'}
+            </span>
+          </div>
+          <div class="row-details">
+            ${row.variants} variant${row.variants !== 1 ? 's' : ''} 
+            ${row.cost ? '• ' + row.cost : ''}
+          </div>
+          <div class="row-prompt">${escapeHtml(row.prompt)}</div>
+        </div>
+      `).join('');
+
+      container.innerHTML = html;
+    }
+
+    // Update the cost display
+    function updateCostDisplay(totalCost) {
+      const costAmount = document.querySelector('.cost-amount');
+      const costBreakdown = document.querySelector('.cost-breakdown');
+      
+      const totalImages = currentSelection.reduce((sum, row) => {
+        return sum + Math.max(1, Math.min(3, parseInt(row.variants) || 1));
+      }, 0);
+
+      costAmount.textContent = `$${totalCost.toFixed(4)}`;
+      costBreakdown.textContent = `${totalImages} image${totalImages !== 1 ? 's' : ''} × $0.002`;
+    }
+
+    // Update the thumbnail section
+    function updateThumbnailSection() {
+      const section = document.getElementById('thumbnails-section');
+      
+      // Show thumbnails only if exactly one row is selected
+      if (currentSelection.length === 1) {
+        const row = currentSelection[0];
+        selectedRow = row;
+        section.style.display = 'block';
+        
+        updateSingleRowInfo(row);
+        updateThumbnailGrid(row);
+      } else {
+        section.style.display = 'none';
+        selectedRow = null;
+        selectedThumbnail = null;
+      }
+    }
+
+    // Update single row info
+    function updateSingleRowInfo(row) {
+      const container = document.getElementById('single-row-info');
+      container.innerHTML = `
+        <div style="margin-bottom: 8px;">
+          <strong>${escapeHtml(row.scene_id)}</strong>
+          <span class="status status-${(row.status_img || 'pending').toLowerCase()}">
+            ${row.status_img || 'pending'}
+          </span>
+        </div>
+        <div style="font-size: 11px; color: #5f6368; margin-bottom: 8px;">
+          ${escapeHtml(row.prompt)}
+        </div>
+      `;
+    }
+
+    // Update thumbnail grid
+    function updateThumbnailGrid(row) {
+      const container = document.getElementById('thumbnails-grid');
+      const thumbnails = [
+        { url: row.nano_img_1, label: 'Image 1' },
+        { url: row.nano_img_2, label: 'Image 2' },
+        { url: row.nano_img_3, label: 'Image 3' }
+      ];
+
+      const hasImages = thumbnails.some(thumb => thumb.url);
+      
+      if (!hasImages) {
+        container.innerHTML = `
+          <div style="grid-column: 1/-1;" class="empty-state">
+            <div class="empty-state-icon">🖼️</div>
+            <div>No images generated yet</div>
+            <div style="font-size: 10px; margin-top: 4px;">Generate images first</div>
+          </div>
+        `;
+        updateApproveButton(false);
+        return;
+      }
+
+      const html = thumbnails.map((thumb, index) => {
+        if (!thumb.url) return '';
+        
+        return `
+          <div class="thumbnail" onclick="selectThumbnail('${thumb.url}', ${index})">
+            <img src="${thumb.url}" alt="${thumb.label}" 
+                 onerror="this.parentElement.innerHTML='<div class=&quot;thumbnail-placeholder&quot;>Failed to load</div>'" />
+            <div class="thumbnail-label">${thumb.label}</div>
+          </div>
+        `;
+      }).join('');
+
+      container.innerHTML = html;
+      updateApproveButton(hasImages);
+    }
+
+    // Select a thumbnail
+    function selectThumbnail(url, index) {
+      selectedThumbnail = url;
+      
+      // Update visual selection
+      document.querySelectorAll('.thumbnail').forEach(thumb => {
+        thumb.classList.remove('selected');
+      });
+      
+      const thumbnails = document.querySelectorAll('.thumbnail');
+      if (thumbnails[index]) {
+        thumbnails[index].classList.add('selected');
+      }
+      
+      updateApproveButton(true);
+    }
+
+    // Update approve button state
+    function updateApproveButton(hasImages) {
+      const button = document.getElementById('approve-button');
+      const hasSelection = selectedThumbnail && selectedRow;
+      
+      button.disabled = !hasImages || !hasSelection;
+      
+      if (!hasImages) {
+        button.textContent = '✓ Approve Selected (No Images)';
+      } else if (!hasSelection) {
+        button.textContent = '✓ Approve Selected (Select Image)';
+      } else {
+        button.textContent = '✓ Approve Selected';
+      }
+    }
+
+    // Approve the selected thumbnail
+    function approveSelected() {
+      if (!selectedThumbnail || !selectedRow) {
+        showError('thumbnails-section', 'Please select an image first');
+        return;
+      }
+
+      const button = document.getElementById('approve-button');
+      const originalText = button.textContent;
+      button.disabled = true;
+      button.textContent = 'Approving...';
+
+      google.script.run
+        .withSuccessHandler((result) => {
+          if (result.success) {
+            showSuccess('Image approved successfully!');
+            refreshSelection(); // Refresh to show updated data
+          } else {
+            showError('thumbnails-section', result.error || 'Failed to approve image');
+          }
+          
+          button.disabled = false;
+          button.textContent = originalText;
+        })
+        .withFailureHandler((error) => {
+          showError('thumbnails-section', 'Failed to approve image: ' + error.message);
+          button.disabled = false;
+          button.textContent = originalText;
+        })
+        .approveStill(selectedRow.scene_id, selectedThumbnail);
+    }
+
+    // Utility functions
+    function showLoading(containerId) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = '<div class="loading">Loading...</div>';
+    }
+
+    function showError(containerId, message) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = `<div class="error">Error: ${escapeHtml(message)}</div>`;
+    }
+
+    function showSuccess(message) {
+      // Simple success notification
+      const notification = document.createElement('div');
+      notification.style.cssText = `
+        position: fixed;
+        top: 16px;
+        left: 16px;
+        right: 16px;
+        background: #e6f4ea;
+        border: 1px solid #81c995;
+        color: #137333;
+        padding: 12px;
+        border-radius: 4px;
+        font-size: 12px;
+        z-index: 1000;
+      `;
+      notification.textContent = message;
+      document.body.appendChild(notification);
+      
+      setTimeout(() => {
+        if (notification.parentNode) {
+          notification.parentNode.removeChild(notification);
+        }
+      }, 3000);
+    }
+
+    function handleError(error) {
+      console.error('Apps Script error:', error);
+      showError('selection-content', error.message || 'An error occurred');
+    }
+
+    function escapeHtml(text) {
+      if (typeof text !== 'string') return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Initialize when the page loads
+    document.addEventListener('DOMContentLoaded', initSidebar);
+  </script>
+</body>
+</html>

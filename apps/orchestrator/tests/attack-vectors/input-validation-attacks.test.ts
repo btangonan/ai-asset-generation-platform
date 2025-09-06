@@ -87,8 +87,10 @@ describe('🚨 Input Validation Attack Vectors', () => {
           // If rejected, should be a clean 400 error
           expect(response.statusCode).toBe(400);
           const error = response.json();
-          expect(error.error).toBeDefined();
-          expect(error.message).toBeDefined();
+          // RFC 7807 Problem Details format
+          expect(error.type).toBeDefined();
+          expect(error.title).toBeDefined();
+          expect(error.status).toBeDefined();
         }
       });
     });
@@ -171,8 +173,9 @@ describe('🚨 Input Validation Attack Vectors', () => {
         expect([400, 422]).toContain(response.statusCode);
         
         const error = response.json();
-        expect(error.error).toBeDefined();
-        expect(error.message).toBeDefined();
+        expect(error.type).toBeDefined();
+        expect(error.title).toBeDefined();
+        expect(error.status).toBeDefined();
       });
     });
   });
@@ -314,7 +317,7 @@ describe('🚨 Input Validation Attack Vectors', () => {
           // Clean rejection
           expect(response.statusCode).toBe(400);
           const error = response.json();
-          expect(error.error).toBeDefined();
+          expect(error.type).toBeDefined();
         }
       });
     });

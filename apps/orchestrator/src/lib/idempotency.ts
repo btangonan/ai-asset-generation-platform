@@ -1,5 +1,5 @@
 import { createHash } from 'crypto';
-import type { ImageBatchItem } from '@vertex-system/shared';
+import type { ImageBatchItem } from '@ai-platform/shared';
 
 /**
  * Generate a deterministic job ID based on request content

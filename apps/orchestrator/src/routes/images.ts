@@ -5,6 +5,7 @@ import { validateRateLimit } from '../lib/rate-limit.js';
 import { CostCalculator } from '../lib/cost.js';
 import { generateJobId, checkJobExists, storeJobId } from '../lib/idempotency.js';
 import { publishImageJobBatch, type ImageJobMessage } from '../lib/pubsub.js';
+import { sendProblemDetails, Problems } from '../lib/problem-details.js';
 
 export async function imagesRoutes(
   fastify: FastifyInstance,
@@ -22,21 +23,17 @@ export async function imagesRoutes(
     const result = ImageBatchRequestSchema.safeParse(request.body);
     if (!result.success) {
       fastify.log.error({ issues: result.error.issues }, 'Schema validation failed');
-      return reply.status(400).send({
-        error: 'INVALID_REQUEST_SCHEMA',
-        message: 'Request does not match expected schema',
-        issues: result.error.issues, // Show exact validation errors
-      });
+      return sendProblemDetails(reply, Problems.invalidRequestSchema(
+        'Request does not match expected schema',
+        result.error.issues
+      ));
     }
     const body = result.data;
     const { items, runMode } = body;
 
     // Validate batch size
     if (items.length > env.MAX_ROWS_PER_BATCH) {
-      return reply.status(400).send({
-        error: 'BATCH_SIZE_EXCEEDED',
-        message: `Maximum ${env.MAX_ROWS_PER_BATCH} rows per batch`,
-      });
+      return sendProblemDetails(reply, Problems.batchSizeExceeded(env.MAX_ROWS_PER_BATCH));
     }
 
     // Validate variants per row
@@ -44,11 +41,11 @@ export async function imagesRoutes(
       item.variants > env.MAX_VARIANTS_PER_ROW || item.variants < 1
     );
     if (invalidRows.length > 0) {
-      return reply.status(400).send({
-        error: 'INVALID_VARIANTS',
-        message: `Variants must be between 1 and ${env.MAX_VARIANTS_PER_ROW}`,
-        invalidRows: invalidRows.map(r => r.scene_id),
-      });
+      return sendProblemDetails(reply, Problems.invalidVariants(
+        1, 
+        env.MAX_VARIANTS_PER_ROW, 
+        invalidRows.map(r => r.scene_id)
+      ));
     }
 
     // Rate limiting check (placeholder)
@@ -161,13 +158,13 @@ export async function imagesRoutes(
             };
             
             // Add image URLs to appropriate columns
-            if (result.images.length > 0) {
+            if (result.images.length > 0 && result.images[0]) {
               updateData.nano_img_1 = result.images[0].signedUrl;
             }
-            if (result.images.length > 1) {
+            if (result.images.length > 1 && result.images[1]) {
               updateData.nano_img_2 = result.images[1].signedUrl;
             }
-            if (result.images.length > 2) {
+            if (result.images.length > 2 && result.images[2]) {
               updateData.nano_img_3 = result.images[2].signedUrl;
             }
             

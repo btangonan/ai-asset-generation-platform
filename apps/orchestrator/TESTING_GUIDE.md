@@ -234,7 +234,7 @@ cd /Users/bradleytangonan/Desktop/my\ apps/vertex_system/apps/orchestrator
 # Run with live mode (actual image generation)
 GOOGLE_CLOUD_PROJECT=solid-study-467023-i3 \
 GCS_BUCKET=solid-study-467023-i3-ai-assets \
-GEMINI_API_KEY=AIzaSyAYI_vahKNtws_H8e4j7U8S00yx-RvMD-8 \
+GEMINI_API_KEY=[REDACTED-EXPOSED-KEY] \
 RUN_MODE=live \
 PORT=9090 \
 pnpm dev

@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import { VideoBatchRequestSchema } from '@ai-platform/shared';
+import { sendProblemDetails, Problems } from '../lib/problem-details.js';
 
 export async function videosRoutes(
   fastify: FastifyInstance,
@@ -7,11 +8,7 @@ export async function videosRoutes(
 ) {
   fastify.post('/videos', async (_request, reply) => {
     // Future-proofing: Stub route for Phase 2
-    return reply.status(501).send({
-      error: 'VIDEO_FEATURE_DISABLED',
-      message: 'Video generation will be available in Phase 2',
-      expectedAvailability: 'Q2 2024',
-    });
+    return sendProblemDetails(reply, Problems.notImplemented('Video generation (Phase 2)'));
   });
 
   // Keep the schema validation ready for Phase 2

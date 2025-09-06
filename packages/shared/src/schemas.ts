@@ -13,12 +13,12 @@ export const ImageBatchItemSchema = z.object({
   prompt: z.string().min(1).max(1000),
   ref_pack_public_urls: z.array(z.string().url()).max(6).optional(), // Support up to 6 reference images
   variants: z.number().int().min(1).max(3),
-});
+}).strict(); // Reject additional properties for security
 
 export const ImageBatchRequestSchema = z.object({
   items: z.array(ImageBatchItemSchema).min(1).max(10),
   runMode: RunModeSchema.default('dry_run'),
-});
+}).strict(); // Reject additional properties for security
 
 // Video batch schemas (Phase 1 - future-proofed, Phase 2 - active)
 export const VideoBatchItemSchema = z.object({

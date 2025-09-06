@@ -7,6 +7,7 @@ import { google } from 'googleapis';
 import { logger } from '../lib/logger.js';
 import { updateSheetRow } from '../lib/sheets.js';
 import { generateAndUploadImage } from '../lib/image-generator.js';
+import { sendProblemDetails, Problems } from '../lib/problem-details.js';
 
 const sheets = google.sheets('v4');
 
@@ -28,20 +29,21 @@ export async function sheetsRoutes(
     // Get sheet ID from header
     const sheetId = request.headers['x-sheet-id'] as string;
     if (!sheetId) {
-      return reply.status(400).send({
-        error: 'MISSING_SHEET_ID',
-        message: 'x-sheet-id header is required'
+      return sendProblemDetails(reply, {
+        type: 'https://api.ai-platform.com/problems/missing-header',
+        title: 'Missing Required Header',
+        status: 400,
+        detail: 'x-sheet-id header is required'
       });
     }
 
     // Parse request body
     const result = SheetBatchRequestSchema.safeParse(request.body);
     if (!result.success) {
-      return reply.status(400).send({
-        error: 'INVALID_REQUEST',
-        message: 'Invalid request body',
-        issues: result.error.issues
-      });
+      return sendProblemDetails(reply, Problems.invalidRequestSchema(
+        'Invalid request body for sheet processing',
+        result.error.issues
+      ));
     }
 
     const { runMode, rowFilter } = result.data;
@@ -64,9 +66,11 @@ export async function sheetsRoutes(
       
       const rows = response.data.values || [];
       if (rows.length === 0) {
-        return reply.status(400).send({
-          error: 'EMPTY_SHEET',
-          message: 'Sheet is empty. Please add headers and data.'
+        return sendProblemDetails(reply, {
+          type: 'https://api.ai-platform.com/problems/empty-sheet',
+          title: 'Empty Sheet',
+          status: 400,
+          detail: 'Sheet is empty. Please add headers and data.'
         });
       }
       
@@ -76,10 +80,13 @@ export async function sheetsRoutes(
       const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
       
       if (missingHeaders.length > 0) {
-        return reply.status(400).send({
-          error: 'MISSING_HEADERS',
-          message: `Sheet is missing required headers: ${missingHeaders.join(', ')}`,
-          hint: 'First row must contain: scene_id, prompt, variants, status_img, nano_img_1, nano_img_2, nano_img_3, job_id, error_msg, cost'
+        return sendProblemDetails(reply, {
+          type: 'https://api.ai-platform.com/problems/missing-headers',
+          title: 'Missing Required Headers',
+          status: 400,
+          detail: `Sheet is missing required headers: ${missingHeaders.join(', ')}`,
+          hint: 'First row must contain: scene_id, prompt, variants, status_img, nano_img_1, nano_img_2, nano_img_3, job_id, error_msg, cost',
+          missingHeaders
         });
       }
       
@@ -247,26 +254,18 @@ export async function sheetsRoutes(
       logger.error({ error, sheetId }, 'Failed to process sheet');
       
       if (error.code === 403) {
-        return reply.status(403).send({
-          error: 'PERMISSION_DENIED',
-          message: 'Cannot access the Google Sheet. Please ensure the service account has access.',
+        return sendProblemDetails(reply, {
+          ...Problems.permissionDenied('Cannot access the Google Sheet. Please ensure the service account has access.'),
           serviceAccount: 'orchestrator-sa@solid-study-467023-i3.iam.gserviceaccount.com',
           hint: 'Share your sheet with the service account email above as an Editor'
         });
       }
       
       if (error.code === 404) {
-        return reply.status(404).send({
-          error: 'SHEET_NOT_FOUND',
-          message: 'Google Sheet not found. Please check the sheet ID.',
-          sheetId
-        });
+        return sendProblemDetails(reply, Problems.sheetNotFound(sheetId));
       }
       
-      return reply.status(500).send({
-        error: 'SHEET_PROCESSING_ERROR',
-        message: error.message || 'Failed to process sheet'
-      });
+      return sendProblemDetails(reply, Problems.internalError(error.message || 'Failed to process sheet'));
     }
   });
 }

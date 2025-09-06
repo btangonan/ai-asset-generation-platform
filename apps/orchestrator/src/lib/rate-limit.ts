@@ -47,7 +47,7 @@ export async function validateRateLimit(userId: string): Promise<RateLimitResult
       lastRequestTime: 0,
       requestCount: 0,
       dailyCount: 0,
-      lastResetDate: today,
+      lastResetDate: today!,
     };
     userActivity.set(userId, activity);
   }
@@ -55,7 +55,7 @@ export async function validateRateLimit(userId: string): Promise<RateLimitResult
   // Reset daily count if it's a new day
   if (activity.lastResetDate !== today) {
     activity.dailyCount = 0;
-    activity.lastResetDate = today;
+    activity.lastResetDate = today!;
   }
   
   // Check cooldown period (10 minutes by default)

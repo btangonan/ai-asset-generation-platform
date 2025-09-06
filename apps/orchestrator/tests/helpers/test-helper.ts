@@ -34,8 +34,11 @@ export function expectNoCrash(response: any) {
   // Should return a valid response structure
   if (response.statusCode >= 400) {
     const error = response.json();
-    expect(error).toHaveProperty('error');
-    expect(error).toHaveProperty('message');
+    // RFC 7807 Problem Details format
+    expect(error).toHaveProperty('type');
+    expect(error).toHaveProperty('title');
+    expect(error).toHaveProperty('status');
+    // Detail and instance are optional but often present
   }
 }
 

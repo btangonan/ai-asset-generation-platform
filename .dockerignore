@@ -1,0 +1,129 @@
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Environment files - CRITICAL: Never include in Docker image
+.env*
+*.env
+.env.local
+.env.production
+.env.*.local
+
+# Security credentials - NEVER include
+*.pem
+*.key
+*.cert
+service-account-key.json
+credentials.json
+*-credentials.json
+*-key.json
+
+# Development files
+.git/
+.gitignore
+README.md
+*.md
+docs/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Test files and coverage
+coverage/
+*.lcov
+.nyc_output/
+test/
+tests/
+**/*.test.ts
+**/*.test.js
+**/*.spec.ts
+**/*.spec.js
+
+# Build artifacts that should be rebuilt in container
+dist/
+build/
+*.tsbuildinfo
+.next/
+out/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Logs
+logs/
+*.log
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Docker files (prevent recursive Docker builds)
+Dockerfile*
+.dockerignore
+docker-compose*.yml
+
+# CI/CD files
+.github/
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+
+# Package manager locks (let container generate its own)
+pnpm-lock.yaml
+yarn.lock
+package-lock.json
+
+# Cloud and infrastructure files
+.gcloudignore
+cloudbuild.yaml
+infra/
+terraform/
+*.tfstate
+*.tfstate.*
+.terraform/
+*.tfvars
+
+# Large development files
+coverage/
+screenshots/
+videos/
+*.mp4
+*.avi
+*.mov
+
+# IDE and editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Development scripts
+scripts/dev/
+scripts/test/
+debug/
+
+# Documentation
+CHANGELOG.md
+CONTRIBUTING.md
+LICENSE
+AUTHORS
+
+# Project specific excludes
+claudedocs/
+tools/apps_script/
+examples/
+samples/

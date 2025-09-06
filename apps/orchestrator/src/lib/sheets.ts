@@ -28,10 +28,13 @@ export async function updateSheetRow(
   
   try {
     // First, find the row with this scene_id
-    const auth = new google.auth.GoogleAuth({
-      keyFile: env.GOOGLE_APPLICATION_CREDENTIALS,
+    const authOptions: any = {
       scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-    });
+    };
+    if (env.GOOGLE_APPLICATION_CREDENTIALS) {
+      authOptions.keyFile = env.GOOGLE_APPLICATION_CREDENTIALS;
+    }
+    const auth = new google.auth.GoogleAuth(authOptions);
     
     const authClient = await auth.getClient();
     
@@ -53,7 +56,8 @@ export async function updateSheetRow(
     // Find the row with matching scene_id
     let rowIndex = -1;
     for (let i = 1; i < rows.length; i++) {
-      if (rows[i][sceneIdColumn] === sceneId) {
+      const row = rows[i];
+      if (row && row[sceneIdColumn] === sceneId) {
         rowIndex = i + 1; // Sheet rows are 1-indexed
         break;
       }
@@ -165,10 +169,13 @@ export async function getSelectedRows(
   rowIds: string[]
 ): Promise<any[]> {
   try {
-    const auth = new google.auth.GoogleAuth({
-      keyFile: env.GOOGLE_APPLICATION_CREDENTIALS,
+    const authOptions: any = {
       scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
-    });
+    };
+    if (env.GOOGLE_APPLICATION_CREDENTIALS) {
+      authOptions.keyFile = env.GOOGLE_APPLICATION_CREDENTIALS;
+    }
+    const auth = new google.auth.GoogleAuth(authOptions);
     
     const authClient = await auth.getClient();
     
@@ -185,6 +192,8 @@ export async function getSelectedRows(
     const result: any[] = [];
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
+      if (!row) continue;
+      
       const sceneId = row[headers.indexOf('scene_id')];
       
       if (rowIds.includes(sceneId)) {
