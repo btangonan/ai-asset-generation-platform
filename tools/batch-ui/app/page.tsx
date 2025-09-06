@@ -568,6 +568,163 @@ export default function BatchGeneratorPage() {
             )}
           </div>
         </div>
+
+        {/* Image Gallery Section */}
+        {(session?.dryRunResult?.results || session?.liveRunResult?.results) && (
+          <div className="mt-8">
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-2xl font-semibold mb-6">
+                🎨 Generated Images
+                {session.liveRunResult ? ' (Live Results)' : ' (Dry Run Preview)'}
+              </h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {(() => {
+                  // Transform API response to flat list of images for display
+                  const results = session.liveRunResult?.results || session.dryRunResult?.results || [];
+                  const imageItems: any[] = [];
+                  
+                  results.forEach((result: any) => {
+                    if (result.images && Array.isArray(result.images)) {
+                      result.images.forEach((image: any, variantIndex: number) => {
+                        imageItems.push({
+                          sceneId: result.sceneId,
+                          variantIndex,
+                          imageUrl: image.signedUrl,
+                          thumbnailUrl: image.thumbnailUrl,
+                          status: 'completed', // Images in results are always completed
+                          gcsUri: image.gcsUri
+                        });
+                      });
+                    }
+                  });
+                  
+                  return imageItems.map((item, idx) => (
+                    <div key={`${item.sceneId}-${item.variantIndex}`} className="border rounded-lg p-4 bg-gray-50">
+                      {/* Scene Info */}
+                      <div className="mb-3">
+                        <p className="text-sm font-medium text-gray-900">
+                          {item.sceneId} - Variant {item.variantIndex + 1}
+                        </p>
+                        <p className="text-xs text-gray-600 capitalize">
+                          Status: {item.status}
+                        </p>
+                      </div>
+
+                      {/* Image Display */}
+                      {item.imageUrl && item.status === 'completed' ? (
+                        <div className="mb-3">
+                          <img
+                            src={item.imageUrl}
+                            alt={`Generated image for ${item.sceneId}`}
+                            className="w-full h-48 object-cover rounded-md border shadow-sm"
+                            onLoad={() => console.log(`✅ Image loaded: ${item.sceneId}-${item.variantIndex}`)}
+                            onError={() => console.error(`❌ Image failed to load: ${item.sceneId}-${item.variantIndex}`)}
+                          />
+                          <p className="text-xs text-gray-500 mt-1">
+                            1024 × 1024 • Generated with Gemini 2.5 Flash
+                          </p>
+                        </div>
+                      ) : item.status === 'processing' ? (
+                        <div className="mb-3 h-48 bg-blue-100 rounded-md flex items-center justify-center">
+                          <div className="text-center">
+                            <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-2"></div>
+                            <p className="text-sm text-blue-600">Generating...</p>
+                          </div>
+                        </div>
+                      ) : item.status === 'failed' ? (
+                        <div className="mb-3 h-48 bg-red-100 rounded-md flex items-center justify-center">
+                          <div className="text-center">
+                            <p className="text-sm text-red-600 mb-1">❌ Failed</p>
+                            {item.error && (
+                              <p className="text-xs text-red-500">{item.error}</p>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mb-3 h-48 bg-gray-200 rounded-md flex items-center justify-center">
+                          <p className="text-sm text-gray-500">⏳ Pending</p>
+                        </div>
+                      )}
+
+                      {/* Action Buttons */}
+                      {item.imageUrl && item.status === 'completed' && (
+                        <div className="flex gap-2">
+                          <a
+                            href={item.imageUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-1 text-center px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
+                          >
+                            View Full Size
+                          </a>
+                          {item.thumbnailUrl && (
+                            <a
+                              href={item.thumbnailUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-3 py-1 bg-gray-600 text-white text-xs rounded hover:bg-gray-700 transition-colors"
+                            >
+                              Thumb
+                            </a>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ));
+                })()}
+              </div>
+
+              {/* Summary Stats */}
+              <div className="mt-6 pt-4 border-t">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                  {(() => {
+                    // Calculate stats from transformed image data
+                    const results = session.liveRunResult?.results || session.dryRunResult?.results || [];
+                    let totalImages = 0;
+                    let completedImages = 0;
+                    
+                    results.forEach((result: any) => {
+                      if (result.images && Array.isArray(result.images)) {
+                        totalImages += result.images.length;
+                        completedImages += result.images.length; // All returned images are completed
+                      }
+                    });
+                    
+                    return (
+                      <>
+                        <div>
+                          <p className="text-2xl font-bold text-gray-900">
+                            {totalImages}
+                          </p>
+                          <p className="text-sm text-gray-600">Total Images</p>
+                        </div>
+                        <div>
+                          <p className="text-2xl font-bold text-green-600">
+                            {completedImages}
+                          </p>
+                          <p className="text-sm text-gray-600">Completed</p>
+                        </div>
+                        <div>
+                          <p className="text-2xl font-bold text-blue-600">
+                            0
+                          </p>
+                          <p className="text-sm text-gray-600">Processing</p>
+                        </div>
+                        <div>
+                          <p className="text-2xl font-bold text-red-600">
+                            0
+                          </p>
+                          <p className="text-sm text-gray-600">Failed</p>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

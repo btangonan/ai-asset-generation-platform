@@ -7,7 +7,7 @@
 ## 🚨 Critical Vulnerabilities FIXED
 
 ### 1. ✅ RESOLVED: Exposed Gemini API Key
-**Previous Status**: 🔴 CRITICAL - API key `AIzaSyAYI_vahKNtws_H8e4j7U8S00yx-RvMD-8` exposed  
+**Previous Status**: 🔴 CRITICAL - API key `[REDACTED]` exposed  
 **Action Taken**:
 - ✅ Removed from .env.local (replaced with revocation notice)
 - ✅ Redacted from all documentation files (5 files cleaned)
@@ -36,9 +36,9 @@
 
 ### Generated API Keys (Base64url, 256-bit entropy)
 ```bash
-AI_PLATFORM_API_KEY_1=aip_XBvepbgodm3UjQkWzyW5OQWwxnZZD3z0mXjodee5eTc
-AI_PLATFORM_API_KEY_2=aip_a4XaZiveQrPrhCfVlexZblaE-NxLGD6BQhYfOZ6rc3g
-AI_PLATFORM_API_KEY_3=aip_S7tDARvXrDPL6mz17K90SyMBbzOieSSp2jCnJJNoHoo
+AI_PLATFORM_API_KEY_1=[REDACTED]
+AI_PLATFORM_API_KEY_2=[REDACTED]
+AI_PLATFORM_API_KEY_3=[REDACTED]
 ```
 
 ### Security Features Implemented
@@ -51,11 +51,11 @@ AI_PLATFORM_API_KEY_3=aip_S7tDARvXrDPL6mz17K90SyMBbzOieSSp2jCnJJNoHoo
 ### Authentication Usage
 ```bash
 # Bearer token (recommended)
-curl -H "Authorization: Bearer aip_XBvepbgodm3UjQkWzyW5OQWwxnZZD3z0mXjodee5eTc" \
+curl -H "Authorization: Bearer [YOUR_API_KEY]" \
      -X POST https://api.ai-platform.com/batch/images
 
 # API key header (alternative)
-curl -H "X-API-Key: aip_XBvepbgodm3UjQkWzyW5OQWwxnZZD3z0mXjodee5eTc" \
+curl -H "X-API-Key: [YOUR_API_KEY]" \
      -X POST https://api.ai-platform.com/batch/images
 ```
 

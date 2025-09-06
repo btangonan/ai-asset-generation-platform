@@ -11,6 +11,7 @@ import Fastify from 'fastify';
 import helmet from '@fastify/helmet';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
+import multipart from '@fastify/multipart';
 import { createServer } from './server.js';
 import { env } from './lib/env.js';
 import { logger } from './lib/logger.js';
@@ -46,6 +47,18 @@ async function bootstrap() {
   await app.register(rateLimit, {
     max: 100,
     timeWindow: '1 minute',
+  });
+
+  // Multipart file upload support
+  await app.register(multipart, {
+    limits: {
+      fieldNameSize: 100, // Max field name size in bytes
+      fieldSize: 100,     // Max field value size in bytes
+      fields: 10,         // Max number of non-file fields
+      fileSize: 10 * 1024 * 1024, // 10MB max file size
+      files: 6,           // Max number of file fields
+      headerPairs: 2000,  // Max number of header key=>value pairs
+    },
   });
 
   // Register routes

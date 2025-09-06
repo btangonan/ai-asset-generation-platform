@@ -4,6 +4,7 @@ import { statusRoutes } from './routes/status.js';
 import { videosRoutes } from './routes/videos.js';
 import { healthRoutes } from './routes/health.js';
 import { sheetsRoutes } from './routes/sheets.js';
+import { uploadRoutes } from './routes/upload.js';
 import { sendProblemDetails, Problems } from './lib/problem-details.js';
 import { authenticateRequest, initAuth } from './lib/auth.js';
 import { env } from './lib/env.js';
@@ -40,6 +41,7 @@ export async function createServer(
   await fastify.register(imagesRoutes, { prefix: '/batch' });
   await fastify.register(videosRoutes, { prefix: '/batch' });
   await fastify.register(sheetsRoutes, { prefix: '/batch' });
+  await fastify.register(uploadRoutes);
   await fastify.register(statusRoutes);
 
   // Global error handler

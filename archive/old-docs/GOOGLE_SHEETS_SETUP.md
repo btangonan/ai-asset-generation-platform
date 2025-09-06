@@ -21,7 +21,7 @@
 // Configuration - UPDATE THESE VALUES
 const CONFIG = {
   API_BASE_URL: 'https://orchestrator-582559442661.us-central1.run.app',
-  API_KEY: 'aip_XBvepbgodm3UjQkWzyW5OQWwxnZZD3z0mXjodee5eTc',
+  API_KEY: 'YOUR_API_KEY_HERE', // Replace with your actual API key
   SHEET_NAME: 'Sheet1',
   COST_PER_IMAGE: 0.25,
   RATES_VEO_3: 0.50,
@@ -42,7 +42,7 @@ const CONFIG = {
 // Configuration
 const CONFIG = {
   API_BASE_URL: 'https://orchestrator-582559442661.us-central1.run.app',
-  API_KEY: 'aip_XBvepbgodm3UjQkWzyW5OQWwxnZZD3z0mXjodee5eTc',
+  API_KEY: 'YOUR_API_KEY_HERE', // Replace with your actual API key
   SHEET_NAME: 'Sheet1',
   COST_PER_IMAGE: 0.25,
   RATES_VEO_3: 0.50,
@@ -386,7 +386,7 @@ service = build('sheets', 'v4', credentials=creds)
 ```bash
 # Create template via API
 curl -X POST https://orchestrator-582559442661.us-central1.run.app/batch/sheets \
-  -H "x-api-key: aip_XBvepbgodm3UjQkWzyW5OQWwxnZZD3z0mXjodee5eTc" \
+  -H "x-api-key: YOUR_API_KEY_HERE" \
   -H "Content-Type: application/json" \
   -d '{"action": "create_template", "rows": 3}'
 ```

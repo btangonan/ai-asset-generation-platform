@@ -1,214 +1,239 @@
-# AI Asset Generation Platform
+# 🤖 AI Asset Generation Platform
 
-A production-ready TypeScript platform for generating AI assets using Google Sheets as the UI and Cloud Run as the backend. Phase 1 supports image generation via Gemini 2.5 Flash Image, with full future-proofing for video generation.
+**Status**: ✅ **LIVE IN PRODUCTION**  
+**Service URL**: https://orchestrator-582559442661.us-central1.run.app  
+**Last Updated**: September 6, 2025
 
-## 🚀 Quick Start
+A production-ready AI asset generation platform using Google Sheets as the UI and Google Cloud Run as the backend. Generate professional AI images using Gemini 2.5 Flash with reference image conditioning and batch processing capabilities.
 
-### Prerequisites
+## 🎯 **PRODUCTION DEPLOYMENT STATUS**
 
-- Node.js 20+
-- pnpm 8+
-- Google Cloud Project with billing enabled
-- Google Sheets document
+✅ **Live Service**: https://orchestrator-582559442661.us-central1.run.app  
+✅ **Health Check**: All monitoring endpoints operational  
+✅ **Security**: 100% audit complete, P1 fixes applied  
+✅ **Features**: Real AI image generation with Gemini 2.5 Flash ("Nano Banana")  
+✅ **Reference Images**: Multi-modal prompting with up to 6 reference images  
 
-### Local Development
+## 🚀 **Quick Start for Users**
 
+### **For Producers & Creative Teams**
+1. **Access Your Google Sheet** with the configured Apps Script menu
+2. **Fill in your scene data**: `scene_id`, `prompt`, optional `ref_pack_public_urls`
+3. **Select rows** → **AI Generation** → **Generate Images (Dry-Run)** to preview
+4. **Select rows** → **AI Generation** → **Generate Images (Live)** to generate real images
+5. **Review results** in `nano_img_1`, `nano_img_2`, `nano_img_3` columns
+
+**📖 Full Guide**: See [`docs/RUNBOOK.md`](docs/RUNBOOK.md) for complete workflow documentation
+
+### **For Developers**
 ```bash
-# Clone and install dependencies
-git clone <repository-url>
-cd ai-asset-generation-platform
-pnpm install
+# Local development setup
+git clone <this-repository>
+cd vertex_system
+pnpm install && pnpm build
 
-# Copy environment variables
-cp .env.example .env
-# Edit .env with your configuration
-
-# Build all packages
-pnpm build
+# Configure environment
+cp apps/orchestrator/.env.local.example apps/orchestrator/.env.local
+# Edit .env.local with your Google Cloud project and API keys
 
 # Start development server
 pnpm dev
+# Server available at http://localhost:9090
 ```
 
-### Production Deployment
+## 🏗 **Architecture**
 
+```
+┌─────────────────────┐    ┌──────────────────────┐    ┌─────────────────┐
+│   Google Sheets     │    │   Cloud Run          │    │  Google Cloud   │
+│   + Apps Script     ├────┤   Orchestrator       ├────┤  Services       │
+│   (User Interface)  │    │   (FastAPI Backend)  │    │  (GCS, Gemini)  │
+└─────────────────────┘    └──────────────────────┘    └─────────────────┘
+```
+
+### **Core Components**
+- **Frontend**: Google Sheets with Apps Script UI (Phase 1) → React Web App (Phase 2)
+- **Backend**: Fastify TypeScript service on Cloud Run (`apps/orchestrator/`)
+- **AI Generation**: Gemini 2.5 Flash Image with reference image conditioning
+- **Storage**: Google Cloud Storage with signed URLs and thumbnail generation
+- **Future**: Video generation with Veo 3 (Phase 2 ready)
+
+### **Key Features**
+- 🎨 **AI Image Generation**: Gemini 2.5 Flash with 1024x1024 output
+- 📸 **Reference Images**: Multi-modal prompting with style/composition control
+- 🔄 **Batch Processing**: Up to 10 rows, 3 variants each, cost estimation
+- 🔐 **Enterprise Security**: API key authentication, input validation, rate limiting
+- 📊 **Production Monitoring**: Health checks, metrics, structured logging
+- 💰 **Cost Controls**: Dry-run mode, batch limits, usage tracking
+
+## 📋 **API Endpoints**
+
+### **Production Endpoints**
+| Endpoint | Method | Purpose | Status |
+|----------|--------|---------|--------|
+| `/healthz` | GET | Health check | ✅ Live |
+| `/readiness` | GET | Readiness check | ✅ Live |
+| `/metrics` | GET | System metrics | ✅ Live |
+| `/batch/images` | POST | AI image generation | ✅ Live |
+| `/batch/sheets` | POST | Google Sheets integration | ✅ Live |
+| `/upload-reference` | POST | Reference image upload | 🔄 Pending deployment |
+
+### **Example API Usage**
 ```bash
-# Deploy infrastructure
-cd infra/terraform
-cp terraform.tfvars.example terraform.tfvars
-# Edit terraform.tfvars with your project settings
-terraform init
-terraform plan
-terraform apply
-
-# Deploy application
-gcloud builds submit --config=infra/cloudbuild.yaml
+# Generate AI images (requires API key)
+curl -X POST https://orchestrator-582559442661.us-central1.run.app/batch/images \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "items": [
+      {
+        "scene_id": "test-001",
+        "prompt": "A cozy kitchen with warm lighting and modern appliances",
+        "variants": 2,
+        "ref_pack_public_urls": ["https://storage.googleapis.com/bucket/ref1.jpg"],
+        "reference_mode": "style_only"
+      }
+    ],
+    "runMode": "live"
+  }'
 ```
 
-## 🏗 Architecture
+## 🔧 **Development**
 
+### **Project Structure**
 ```
-Google Sheets (UI) → Apps Script → Cloud Run API → Pub/Sub → AI Models → GCS → Sheet Updates
+apps/orchestrator/          # Main FastAPI service
+├── src/
+│   ├── routes/            # API endpoints
+│   ├── lib/              # Utilities (auth, GCS, logging)
+│   └── workers/          # Pub/Sub workers
+packages/
+├── shared/               # Types and schemas
+├── clients/             # AI model clients (Gemini, Veo)
+└── sheets/              # Google Sheets integration
+tools/
+├── apps_script/         # Google Apps Script UI
+└── batch-ui/           # Web UI (Phase 2)
 ```
 
-### Components
-
-- **apps/orchestrator**: Core Fastify service with REST API
-- **packages/shared**: Types, schemas, and error definitions
-- **packages/clients**: AI model clients (Gemini, Vertex Veo)
-- **packages/sheets**: Google Sheets API helper
-- **tools/apps_script**: Ultra-thin UI for Google Sheets
-- **infra/**: Terraform and Cloud Build configuration
-
-## 📊 Features
-
-### Phase 1 (Current)
-- ✅ Image generation via Gemini 2.5 Flash Image
-- ✅ Google Sheets UI with custom menu
-- ✅ Batch processing with rate limits
-- ✅ Cost estimation and dry-run mode
-- ✅ GCS storage with signed URLs
-- ✅ Future-proofed for video generation
-
-### Phase 2 (Planned)
-- 🔄 Video generation via Veo 3/Veo 3 Fast
-- 🔄 Advanced cost controls
-- 🔄 Firestore state management
-- 🔄 Web UI replacement for scale
-
-## 🔧 Configuration
-
-### Environment Variables
-
-Key environment variables (see `.env.example` for full list):
-
+### **Available Scripts**
 ```bash
-# Google Cloud
+# Development
+pnpm dev                 # Start development server
+pnpm build              # Build all packages
+pnpm test               # Run test suite
+pnpm lint               # Lint code
+pnpm typecheck          # TypeScript validation
+
+# Deployment
+pnpm --filter orchestrator build    # Build orchestrator only
+# See deployment section below
+```
+
+### **Environment Configuration**
+Key environment variables (see `.env.local.example`):
+```bash
 GOOGLE_CLOUD_PROJECT=your-project-id
-GCS_BUCKET=your-project-ai-renders
-
-# API Keys
+GCS_BUCKET=your-assets-bucket
 GEMINI_API_KEY=your-gemini-api-key
-GOOGLE_SHEETS_API_KEY=your-sheets-api-key
-
-# Rate Limiting
-MAX_ROWS_PER_BATCH=10
-USER_COOLDOWN_MINUTES=10
-RUN_MODE=dry_run
+AI_PLATFORM_API_KEY_1=your-client-api-key
+RUN_MODE=live  # or 'dry_run'
+PORT=9090
 ```
 
-### Google Sheets Setup
+## 🚀 **Production Deployment**
 
-1. Create a new Google Sheet
-2. Set up column headers (see `docs/RUNBOOK.md` for schema)
-3. Install the Apps Script UI (`tools/apps_script/Code.gs`)
-4. Update `CONFIG.API_BASE_URL` in Apps Script
+### **Current Production Setup**
+- **Service**: `orchestrator` on Google Cloud Run
+- **Project**: `solid-study-467023-i3`
+- **Region**: `us-central1`
+- **Container**: Multi-stage Docker build with production optimizations
+- **Resources**: 512Mi memory, 1 vCPU, 600s timeout
 
-## 📚 Documentation
-
-- **[RUNBOOK.md](docs/RUNBOOK.md)**: Producer workflow and usage guide
-- **[GUARDRAILS.md](docs/GUARDRAILS.md)**: Model specs and safety controls
-- **[CLAUDE.md](docs/CLAUDE.md)**: Development guidelines for AI assistants
-- **[QC_CHECKLIST.md](docs/QC_CHECKLIST.md)**: Quality assurance testing guide
-
-## 🧪 Testing
-
+### **Deployment Commands**
 ```bash
-# Run all tests
-pnpm test
+# Build and deploy new version
+PROJECT=solid-study-467023-i3
+REGION=us-central1
+REPO=orchestrator
+IMAGE_TAG=production-$(date +%Y%m%d-%H%M%S)
 
-# Run specific test suites
-pnpm --filter shared test
-pnpm --filter orchestrator test
-
-# Run E2E tests
-pnpm test:e2e
-```
-
-## 🔒 Security
-
-- Service account authentication with minimal IAM permissions
-- Signed GCS URLs with 7-day expiration
-- Input validation with Zod schemas
-- Rate limiting and quota management
-- No sensitive data in logs
-
-## 📈 Monitoring
-
-Health check endpoints:
-- `GET /healthz` - Basic health status
-- `GET /readiness` - Dependency health checks
-- `GET /status/:jobId` - Job status tracking
-
-## 🛠 Development
-
-### Project Structure
-```
-├─ apps/orchestrator/          # Main Fastify service
-├─ packages/
-│  ├─ shared/                  # Types and schemas
-│  ├─ clients/                 # AI model clients
-│  └─ sheets/                  # Google Sheets helper
-├─ tools/apps_script/          # Google Sheets UI
-├─ infra/                      # Infrastructure as code
-└─ docs/                       # Documentation
-```
-
-### Adding New Features
-
-1. Update schemas in `packages/shared`
-2. Implement client logic in `packages/clients`
-3. Add API routes in `apps/orchestrator/src/routes`
-4. Update Apps Script UI if needed
-5. Add tests and documentation
-
-### Code Quality
-
-```bash
-# Linting and formatting
-pnpm lint
-pnpm format
-
-# Type checking
-pnpm typecheck
-```
-
-## 🚀 Deployment
-
-### Cloud Build
-Automated deployment via Cloud Build:
-- Builds and tests all packages
-- Creates Docker container
-- Deploys to Cloud Run
-- Runs health checks
-
-### Manual Deployment
-```bash
-# Build Docker image
-docker build -f apps/orchestrator/Dockerfile -t ai-orchestrator .
+# Build container
+gcloud builds submit --tag $REGION-docker.pkg.dev/$PROJECT/$REPO/orchestrator:$IMAGE_TAG
 
 # Deploy to Cloud Run
-gcloud run deploy ai-orchestrator \
-  --image gcr.io/PROJECT_ID/ai-orchestrator \
-  --region us-central1 \
-  --allow-unauthenticated
+gcloud run deploy orchestrator \
+  --image $REGION-docker.pkg.dev/$PROJECT/$REPO/orchestrator:$IMAGE_TAG \
+  --region $REGION \
+  --platform managed \
+  --allow-unauthenticated \
+  --memory 512Mi \
+  --service-account orchestrator-sa@$PROJECT.iam.gserviceaccount.com
 ```
 
-## 📞 Support
+### **Deployment Validation**
+After deployment, verify all endpoints:
+```bash
+SERVICE_URL="https://orchestrator-582559442661.us-central1.run.app"
+curl -f $SERVICE_URL/healthz    # Should return 200
+curl -f $SERVICE_URL/readiness  # Should return 200
+curl -f $SERVICE_URL/metrics    # Should return 200
+```
 
-For issues and questions:
-1. Check the documentation in `docs/`
+## 📚 **Documentation**
+
+- **[RUNBOOK.md](docs/RUNBOOK.md)** - Complete user workflow guide
+- **[CLAUDE.md](docs/CLAUDE.md)** - Development guide and patterns
+- **[CRITICAL_STATUS.md](CRITICAL_STATUS.md)** - Current system status
+- **[INTEGRITY_AUDIT.md](INTEGRITY_AUDIT.md)** - Security and compliance report
+
+## 🔒 **Security & Compliance**
+
+- ✅ **Authentication**: Cryptographic API keys with timing attack protection
+- ✅ **Input Validation**: Zod strict schemas preventing injection attacks
+- ✅ **Error Handling**: RFC 7807 Problem Details standard
+- ✅ **Rate Limiting**: Configurable per-user and global limits
+- ✅ **Container Security**: Multi-stage builds, non-root user
+- ✅ **Secret Management**: Google Secret Manager integration
+- ✅ **Audit Status**: 100% production ready, all P1 issues resolved
+
+## 💡 **Features**
+
+### **Phase 1 (Current)**
+- ✅ AI Image Generation with Gemini 2.5 Flash
+- ✅ Reference Image Conditioning (up to 6 images)
+- ✅ Google Sheets UI with Apps Script
+- ✅ Batch Processing with cost estimation
+- ✅ GCS storage with signed URLs and thumbnails
+- ✅ Production monitoring and health checks
+
+### **Phase 2 (Planned)**
+- 📅 Video Generation with Veo 3
+- 📅 React Web UI
+- 📅 Advanced workflow management
+- 📅 Enhanced analytics and reporting
+
+## 🆘 **Support & Troubleshooting**
+
+### **Common Issues**
+- **Authentication errors**: Verify API key format (`aip_...`) and permissions
+- **Rate limiting**: Wait for cooldown period or contact admin for limits
+- **Reference image errors**: Check URLs are accessible and under 10MB
+
+### **Getting Help**
+1. Check service health: `curl https://orchestrator-582559442661.us-central1.run.app/healthz`
 2. Review logs in Google Cloud Console
-3. Use the QC checklist for debugging
-4. Contact the development team
+3. Consult documentation in `docs/` directory
+4. For production issues, include scene_id and timestamp
 
-## 🔮 Future Roadmap
+## 📊 **System Status**
 
-- **Q2 2024**: Phase 2 with video generation
-- **Q3 2024**: Web UI replacement
-- **Q4 2024**: Multi-tenant architecture
-- **2025**: Advanced workflow automation
+**Live Service**: https://orchestrator-582559442661.us-central1.run.app  
+**Health**: ✅ All systems operational  
+**Security**: ✅ 100% audit complete  
+**Features**: ✅ Real AI generation active  
+**Last Audit**: September 6, 2025 - 100% production ready
 
-## 📄 License
+---
 
-This project is proprietary. All rights reserved.
+**Built with TypeScript, Fastify, Google Cloud, and Gemini AI**

@@ -86,8 +86,8 @@ export async function authenticateRequest(
     return;
   }
   
-  // Skip authentication for health check endpoint
-  if (request.url === '/healthz') {
+  // Skip authentication for monitoring endpoints
+  if (request.url === '/healthz' || request.url === '/readiness' || request.url === '/metrics') {
     return;
   }
   

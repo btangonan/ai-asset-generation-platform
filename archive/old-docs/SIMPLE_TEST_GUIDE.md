@@ -30,7 +30,7 @@ TEST-003,Elegant bedroom with soft evening ambiance,REF-003,,1,,,,,,,,
 ```javascript
 // Quick setup - just copy this!
 const API_URL = 'https://orchestrator-582559442661.us-central1.run.app';
-const API_KEY = 'aip_XBvepbgodm3UjQkWzyW5OQWwxnZZD3z0mXjodee5eTc';
+const API_KEY = 'YOUR_API_KEY_HERE'; // Replace with your actual API key
 
 function onOpen() {
   SpreadsheetApp.getUi()

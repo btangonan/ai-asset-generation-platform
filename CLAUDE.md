@@ -132,7 +132,7 @@ gcloud run deploy orchestrator \
   --cpu 1 \
   --timeout 600s \
   --service-account orchestrator-sa@solid-study-467023-i3.iam.gserviceaccount.com \
-  --set-env-vars GOOGLE_CLOUD_PROJECT=solid-study-467023-i3,GCS_BUCKET=solid-study-467023-i3-ai-assets,GEMINI_API_KEY=AIzaSyBYekAymMYfkh3OmVJKAU8LMbeU4JGYnwo,NODE_ENV=production,RUN_MODE=dry_run,AI_PLATFORM_API_KEY_1=aip_XBvepbgodm3UjQkWzyW5OQWwxnZZD3z0mXjodee5eTc
+  --set-env-vars GOOGLE_CLOUD_PROJECT=solid-study-467023-i3,GCS_BUCKET=solid-study-467023-i3-ai-assets,GEMINI_API_KEY=[REDACTED],NODE_ENV=production,RUN_MODE=dry_run,AI_PLATFORM_API_KEY_1=[REDACTED]
 
 # Container build command
 PROJECT=solid-study-467023-i3 && REGION=us-central1 && REPO=orchestrator && \
@@ -201,6 +201,111 @@ gcloud builds submit --tag $REGION-docker.pkg.dev/$PROJECT/$REPO/orchestrator:$I
 - ✅ **Service account IAM** properly configured
 
 **The system is now ready for Google Sheets Apps Script integration and production usage.**
+
+## 🖼️ REFERENCE IMAGE STORAGE SYSTEM - IMPLEMENTED (September 6, 2025 - 7:30 PM)
+
+### ✅ COMPLETE BACKEND INFRASTRUCTURE IMPLEMENTED
+
+**New Feature**: Complete reference image storage system for AI image generation with cloud storage integration.
+
+**Implementation Status**: ✅ BACKEND COMPLETE, PENDING DEPLOYMENT
+
+#### Core Components Implemented
+- **Upload Handler**: `apps/orchestrator/src/routes/upload-reference.ts` - Fastify multipart upload processing
+- **Route Registration**: `apps/orchestrator/src/routes/upload.ts` - POST /upload-reference endpoint
+- **Server Integration**: Updated `apps/orchestrator/src/server.ts` with upload routes
+- **Multipart Support**: Added `@fastify/multipart` dependency and middleware configuration
+- **GCS Integration**: Full cloud storage with thumbnail generation using Sharp
+
+#### Technical Specifications
+```typescript
+// Upload Endpoint: POST /upload-reference
+interface UploadedReference {
+  originalName: string;
+  url: string;           // Signed GCS URL
+  thumbnailUrl?: string; // 128px thumbnail URL  
+  gcsUri: string;        // gs:// path
+  size: number;          // File size in bytes
+  mimeType: string;      // MIME type validation
+  uploadedAt: string;    // ISO timestamp
+}
+
+// Validation & Limits
+- File Types: Images only (validated via MIME type)
+- File Size: 10MB maximum per image
+- File Count: Up to 6 reference images per batch
+- Processing: Automatic thumbnail generation (128px)
+```
+
+#### Upload Flow Architecture
+```
+Client (multipart/form-data) 
+    ↓
+POST /upload-reference
+    ↓
+File Validation (type, size, count)
+    ↓  
+For each uploaded image:
+    - Generate unique GCS path: references/{batchId}/{timestamp}_{index}.{ext}
+    - Upload main image to GCS
+    - Create 128px thumbnail with Sharp
+    - Upload thumbnail to GCS  
+    - Generate signed URLs (7-day expiry)
+    ↓
+Return batch response with all image URLs
+```
+
+#### File Structure in GCS
+```
+gs://solid-study-467023-i3-ai-assets/
+└── references/
+    └── {batch_id}/
+        ├── {timestamp}_1.jpg         (main image)  
+        ├── {timestamp}_1_thumb.png   (128px thumbnail)
+        ├── {timestamp}_2.jpg         
+        ├── {timestamp}_2_thumb.png   
+        └── ...
+```
+
+### Container Status
+- ✅ **Backend Code**: Complete implementation finished
+- ✅ **Dependencies**: `@fastify/multipart` added to package.json
+- ✅ **Container Built**: `nano-banana-fixed-20250906-125742` with upload support
+- ⏳ **Deployment Needed**: Container with upload routes not yet deployed to Cloud Run
+- 🔄 **Web App Integration**: Frontend needs update to use cloud storage instead of local blob URLs
+
+### Next Steps for Full Activation
+1. **Deploy Updated Container**: Deploy `nano-banana-fixed-20250906-125742` with reference upload support
+2. **Update Web App Frontend**: Modify to use `/upload-reference` endpoint instead of local blob URLs
+3. **Test Complete Workflow**: Verify end-to-end reference image upload and AI generation
+4. **Production Integration**: Add upload endpoint to web app API proxy whitelist
+
+### API Usage Example
+```bash
+# Upload reference images
+curl -X POST https://orchestrator-582559442661.us-central1.run.app/upload-reference \
+  -H "Authorization: Bearer API_KEY" \
+  -F "images=@reference1.jpg" \
+  -F "images=@reference2.jpg"
+
+# Response
+{
+  "success": true,
+  "batchId": "a1b2c3d4",
+  "images": [
+    {
+      "originalName": "reference1.jpg",
+      "url": "https://storage.googleapis.com/...",
+      "thumbnailUrl": "https://storage.googleapis.com/...",
+      "gcsUri": "gs://bucket/references/a1b2c3d4/...",
+      "size": 1048576,
+      "mimeType": "image/jpeg",
+      "uploadedAt": "2025-09-06T19:30:00.000Z"
+    }
+  ],
+  "totalSize": 1048576
+}
+```
 
 ## 🚀 BREAKTHROUGH: GEMINI 2.5 FLASH FIXED! (September 6, 2025 - 12:56 PM)
 

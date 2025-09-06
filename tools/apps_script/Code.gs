@@ -8,7 +8,7 @@
 // Configuration - Production ready
 const CONFIG = {
   API_BASE_URL: 'https://orchestrator-582559442661.us-central1.run.app',
-  API_KEY: 'aip_XBvepbgodm3UjQkWzyW5OQWwxnZZD3z0mXjodee5eTc',
+  API_KEY: 'YOUR_API_KEY_HERE', // TODO: Replace with your actual API key
   SHEET_NAME: 'Sheet1',
   COST_PER_IMAGE: 0.25,
   RATES_VEO_3: 0.50,

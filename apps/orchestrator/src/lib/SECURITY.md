@@ -8,7 +8,7 @@ The AI Asset Generation Platform implements a robust API key-based authenticatio
 
 All API keys follow the format: `aip_{base64url_encoded_32_random_bytes}`
 
-**Example**: `aip_XBvepbgodm3UjQkWzyW5OQWwxnZZD3z0mXjodee5eTc`
+**Example**: `aip_[32_bytes_base64url_encoded]`
 
 ### 🛡️ Security Features
 
@@ -54,13 +54,13 @@ node -e "console.log('aip_' + Buffer.from(Array.from({length:32}, () => Math.flo
 
 **Option 1: Bearer Token**
 ```bash
-curl -H "Authorization: Bearer aip_XBvepbgodm3UjQkWzyW5OQWwxnZZD3z0mXjodee5eTc" \
+curl -H "Authorization: Bearer YOUR_API_KEY_HERE" \
      -X POST https://api.example.com/batch/images
 ```
 
 **Option 2: API Key Header**
 ```bash
-curl -H "X-API-Key: aip_XBvepbgodm3UjQkWzyW5OQWwxnZZD3z0mXjodee5eTc" \
+curl -H "X-API-Key: YOUR_API_KEY_HERE" \
      -X POST https://api.example.com/batch/images
 ```
 
@@ -77,7 +77,7 @@ curl -H "X-API-Key: aip_XBvepbgodm3UjQkWzyW5OQWwxnZZD3z0mXjodee5eTc" \
 {
   "url": "/batch/images",
   "method": "POST",
-  "keyPrefix": "aip_XBve...",
+  "keyPrefix": "aip_[prefix]...",
   "ip": "192.168.1.1",
   "msg": "Authentication successful"
 }
@@ -117,7 +117,7 @@ curl -H "X-API-Key: aip_XBvepbgodm3UjQkWzyW5OQWwxnZZD3z0mXjodee5eTc" \
 #### Test API Key Validation
 ```bash
 # Test valid key
-curl -H "X-API-Key: aip_XBvepbgodm3UjQkWzyW5OQWwxnZZD3z0mXjodee5eTc" \
+curl -H "X-API-Key: YOUR_API_KEY_HERE" \
      http://localhost:9090/healthz
 
 # Test invalid key (should return 401)

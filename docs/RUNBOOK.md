@@ -1,5 +1,9 @@
 # Producer Runbook: AI Asset Generation
 
+**Production Service**: https://orchestrator-582559442661.us-central1.run.app  
+**Status**: ✅ Live and operational  
+**Last Updated**: September 6, 2025
+
 Step-by-step guide for creative teams to generate AI assets using the platform.
 
 ## 🎯 Overview

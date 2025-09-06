@@ -27,7 +27,9 @@ POST /batch/videos
 GET /status/:jobId
 - Returns: { status, progress, results }
 
-POST /signed-upload (needs implementation or mock)
+POST /upload-reference
+- Accepts: multipart/form-data with image files
+- Returns: { success: true, batchId: string, images: [...] }
 - For GCS signed URLs for direct file upload
 ```
 
@@ -112,9 +114,9 @@ const hash = sha256(content);
 
 ## Concerns
 
-1. **CORS:** Will the backend at `orchestrator-582559442661.us-central1.run.app` accept requests from localhost:3000? Need to handle CORS headers.
+1. **CORS:** Will the backend at `orchestrator-582559442661.us-central1.run.app` accept requests from localhost:8701? Need to handle CORS headers.
 
-2. **API Key:** The backend requires `x-api-key` header. For demo, can we use: `aip_XBvepbgodm3UjQkWzyW5OQWwxnZZD3z0mXjodee5eTc`?
+2. **API Key:** The backend requires `x-api-key` header. For demo, can we use: `[YOUR_API_KEY_HERE]`?
 
 3. **Hash Mismatch:** If user edits batch after dry-run, the hash changes. Should we auto-trigger new dry-run or show clear warning?
 
