@@ -28,16 +28,18 @@ const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
-  return handleProxy(request, params.path, 'POST');
+  const resolvedParams = await params;
+  return handleProxy(request, resolvedParams.path, 'POST');
 }
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
-  return handleProxy(request, params.path, 'GET');
+  const resolvedParams = await params;
+  return handleProxy(request, resolvedParams.path, 'GET');
 }
 
 async function handleProxy(
@@ -162,7 +164,7 @@ async function handleProxy(
       headers,
       body,
       // Add timeout
-      signal: AbortSignal.timeout(30000) // 30 second timeout
+      signal: AbortSignal.timeout(120000) // 120 second timeout for image generation
     });
 
     // 7. Parse response
