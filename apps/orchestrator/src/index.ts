@@ -16,6 +16,7 @@ import { createServer } from './server.js';
 import { env } from './lib/env.js';
 import { logger } from './lib/logger.js';
 import { startRateLimitCleanup } from './lib/rate-limit.js';
+import { metrics } from './lib/metrics.js';
 
 async function bootstrap() {
   const app = Fastify({
@@ -60,6 +61,30 @@ async function bootstrap() {
       headerPairs: 2000,  // Max number of header key=>value pairs
     },
   });
+
+  // Count every request (cheap visibility for canary)
+  app.addHook('onRequest', async () => {
+    metrics.requests += 1;
+  });
+
+  // Ensure errors are counted and shaped as RFC7807-ish
+  app.setErrorHandler((err, req, reply) => {
+    metrics.errors += 1;
+    const status = reply.statusCode >= 400 ? reply.statusCode : 500;
+    reply.status(status).send({
+      type: 'about:blank',
+      title: 'INTERNAL_ERROR',
+      status,
+      detail: err?.message ?? 'internal error',
+      instance: req.url,
+    });
+  });
+
+  // Liveness
+  app.get('/healthz', async () => ({ ok: true, ts: Date.now() }));
+
+  // Tiny metrics surface for log-based alerts and manual inspection
+  app.get('/metrics-lite', async () => ({ ts: Date.now(), ...metrics }));
 
   // Register routes
   await app.register(createServer);
