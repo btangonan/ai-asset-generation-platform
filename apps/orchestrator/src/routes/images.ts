@@ -12,6 +12,7 @@ import { refreshForLongBatch } from '../lib/url-refresh.js';
 import { checkBudget, recordSpend } from '../lib/budget-guard.js';
 import { appendLedger } from '../lib/budget-ledger.js';
 import { metrics } from '../lib/metrics.js';
+import { publish } from '../lib/bus.js';
 
 export async function imagesRoutes(
   fastify: FastifyInstance,
@@ -155,6 +156,9 @@ export async function imagesRoutes(
     const jobs: any[] = [];
     const results: any[] = [];
     
+    // Publish batch started event
+    publish({ type: 'started', batchId });
+    
     // Process each item directly
     for (const [index, item] of items.entries()) {
       const jobId = `${batchId}_${item.scene_id}_${index}`;
@@ -242,6 +246,9 @@ export async function imagesRoutes(
           images: result.images,
         });
         
+        // Publish item completion event
+        publish({ type: 'item_complete', batchId, sceneId: item.scene_id });
+        
       } catch (error: any) {
         fastify.log.error({ error: error.message, jobId, sceneId: item.scene_id }, 'Failed to generate images');
         
@@ -251,6 +258,9 @@ export async function imagesRoutes(
           status: 'failed',
           error: error.message,
         });
+        
+        // Publish error event
+        publish({ type: 'error', batchId, detail: error.message });
         
         // Update sheet status to failed if sheet ID provided
         if (sheetId !== 'default-sheet') {
@@ -287,6 +297,10 @@ export async function imagesRoutes(
         cost: actualCost,
       });
     }
+    
+    // Publish batch completion event
+    const processedCount = jobs.filter(j => j.status === 'completed').length;
+    publish({ type: 'done', batchId, processed: processedCount });
     
     return reply.status(200).send({
       batchId,

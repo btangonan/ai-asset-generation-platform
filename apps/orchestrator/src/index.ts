@@ -80,9 +80,6 @@ async function bootstrap() {
     });
   });
 
-  // Liveness
-  app.get('/healthz', async () => ({ ok: true, ts: Date.now() }));
-
   // Tiny metrics surface for log-based alerts and manual inspection
   app.get('/metrics-lite', async () => ({ ts: Date.now(), ...metrics }));
 
