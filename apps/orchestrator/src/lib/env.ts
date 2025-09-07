@@ -45,6 +45,7 @@ const envSchema = z.object({
   // Cost controls
   RUN_MODE: z.enum(['dry_run', 'live']).default('dry_run'),
   DAILY_BUDGET_USD: z.coerce.number().default(100),
+  BUDGET_LEDGER_ENABLED: z.coerce.boolean().default(false),
   
   // Authentication - API Keys for client access (optional, graceful degradation)
   AI_PLATFORM_API_KEY_1: optionalTrim,

@@ -10,6 +10,8 @@ import { mergeRefs } from '../lib/ref-merge.js';
 import { saveState, type JobState } from '../lib/ledger.js';
 import { refreshForLongBatch } from '../lib/url-refresh.js';
 import { checkBudget, recordSpend } from '../lib/budget-guard.js';
+import { appendLedger } from '../lib/budget-ledger.js';
+import { metrics } from '../lib/metrics.js';
 
 export async function imagesRoutes(
   fastify: FastifyInstance,
@@ -270,6 +272,20 @@ export async function imagesRoutes(
                       (items[0]?.variants || 1); // Calculate based on actual successful generations
     if (actualCost > 0) {
       recordSpend(userId, actualCost);
+      
+      // Increment metrics counter for images generated
+      const totalImages = results.reduce((sum, r) => sum + (r.images?.length || 0), 0);
+      metrics.imagesGenerated += totalImages;
+      
+      // Append to ledger for cost tracking
+      await appendLedger({
+        ts: Date.now(),
+        userId,
+        jobId: batchId,
+        prompt: items.map(i => i.prompt).join('; '),
+        images: totalImages,
+        cost: actualCost,
+      });
     }
     
     return reply.status(200).send({
