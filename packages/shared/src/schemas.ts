@@ -10,13 +10,23 @@ export const ResolutionSchema = z.union([z.literal(720), z.literal(1080)]);
 // Reference image schemas
 export const ReferenceModeSchema = z.enum(['style_only', 'style_and_composition']);
 
+// Reference URL with mode and optional hash
+export const RefUrlSchema = z.object({
+  url: z.string().url().startsWith('https://'),
+  mode: ReferenceModeSchema.optional().default('style_only'),
+  hash: z.string().optional(), // SHA-256 of content
+}).strict();
+
+export type RefUrl = z.infer<typeof RefUrlSchema>;
+
 // Image batch schemas (Phase 1 - active)
 export const ImageBatchItemSchema = z.object({
   scene_id: z.string().min(1).max(50),
   prompt: z.string().min(1).max(1000),
-  ref_pack_public_urls: z.array(z.string().url()).max(6).optional(), // Support up to 6 reference images
+  ref_pack_id: z.string().optional(), // Global pack reference
+  ref_pack_public_urls: z.array(RefUrlSchema).max(6).optional(), // Per-row refs
   reference_mode: ReferenceModeSchema.optional().default('style_only'),
-  variants: z.number().int().min(1).max(3),
+  variants: z.number().int().min(1).max(3), // Hard cap at 3
 }).strict(); // Reject additional properties for security
 
 export const ImageBatchRequestSchema = z.object({

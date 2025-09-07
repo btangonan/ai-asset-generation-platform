@@ -6,6 +6,10 @@ import { CostCalculator } from '../lib/cost.js';
 import { generateJobId, checkJobExists, storeJobId } from '../lib/idempotency.js';
 import { publishImageJobBatch, type ImageJobMessage } from '../lib/pubsub.js';
 import { sendProblemDetails, Problems } from '../lib/problem-details.js';
+import { mergeRefs } from '../lib/ref-merge.js';
+import { saveState, type JobState } from '../lib/ledger.js';
+import { refreshForLongBatch } from '../lib/url-refresh.js';
+import { checkBudget, recordSpend } from '../lib/budget-guard.js';
 
 export async function imagesRoutes(
   fastify: FastifyInstance,
@@ -82,6 +86,24 @@ export async function imagesRoutes(
       });
     }
     
+    // Budget guard check (only for live mode)
+    if (runMode === 'live') {
+      const budgetCheck = checkBudget(userId, estimatedCost);
+      if (!budgetCheck.allowed) {
+        return sendProblemDetails(reply, {
+          type: 'https://example.com/problems/budget-exceeded',
+          title: 'Budget Exceeded',
+          status: 402,
+          detail: budgetCheck.message || 'Daily budget limit exceeded',
+          instance: `/batch/images/${batchId}`,
+          code: budgetCheck.code,
+          estimatedCost,
+          remaining: budgetCheck.remaining,
+          dailyLimit: budgetCheck.dailyLimit,
+        });
+      }
+    }
+    
     // Dry run mode
     if (runMode === 'dry_run') {
       return reply.status(200).send({
@@ -100,6 +122,7 @@ export async function imagesRoutes(
     // Live mode - generate images directly (bypassing Pub/Sub for MVP testing)
     const sheetId = request.headers['x-sheet-id'] as string || 'default-sheet';
     const timestamp = Date.now();
+    const batchStartTime = Date.now();
     
     // Store job ID for deduplication
     await storeJobId(batchId, {
@@ -108,6 +131,20 @@ export async function imagesRoutes(
       createdAt: new Date(),
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
     });
+
+    // Initialize job state in ledger
+    const jobState: JobState = {
+      batchId,
+      status: 'running',
+      progress: 0,
+      items: items.map(item => ({
+        sceneId: item.scene_id,
+        status: 'pending',
+      })),
+      startedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    await saveState(batchId, jobState);
 
     // Import necessary modules for direct generation
     const { generateAndUploadImages } = await import('../lib/image-generator.js');
@@ -137,12 +174,24 @@ export async function imagesRoutes(
           }
         }
         
+        // Refresh reference URLs if batch is taking long
+        let refreshedRefs: string[] | undefined;
+        if (item.ref_pack_public_urls && item.ref_pack_public_urls.length > 0) {
+          const urlsToRefresh = item.ref_pack_public_urls.map(ref => ({
+            url: ref.url,
+            gcsUri: ref.url.includes('storage.googleapis.com') 
+              ? `gs://${ref.url.split('/')[3]}/${ref.url.split('/').slice(4).join('/')}`
+              : ref.url
+          }));
+          refreshedRefs = await refreshForLongBatch(batchStartTime, urlsToRefresh);
+        }
+        
         // Generate images with Nano Banana including reference support
         const imageResults = await generateAndUploadImages(
           item.scene_id,
           item.prompt,
           item.variants,
-          item.ref_pack_public_urls,
+          refreshedRefs || item.ref_pack_public_urls?.map(ref => ref.url),
           item.reference_mode
         );
         
@@ -215,10 +264,19 @@ export async function imagesRoutes(
       }
     }
 
+    // Record actual spend for successful generations
+    const successfulJobs = jobs.filter(j => j.status === 'completed').length;
+    const actualCost = successfulJobs * costCalculator.rates.gemini_image * 
+                      (items[0]?.variants || 1); // Calculate based on actual successful generations
+    if (actualCost > 0) {
+      recordSpend(userId, actualCost);
+    }
+    
     return reply.status(200).send({
       batchId,
       runMode: 'live',
       estimatedCost,
+      actualCost,
       accepted: jobs.filter(j => j.status !== 'failed').length,
       rejected: jobs.filter(j => j.status === 'failed').map(j => j.sceneId),
       jobs,

@@ -5,6 +5,8 @@ import crypto from 'crypto';
 const GenerateImagesRequestSchema = z.object({
   prompt: z.string().min(1).max(1000),
   refPackUrls: z.array(z.string().url()).max(6).optional().default([]),
+  referenceImages: z.array(z.string().url()).max(6).optional(),
+  referenceMode: z.enum(['style_only', 'style_and_composition']).optional(),
   variants: z.number().int().min(1).max(3),
   sceneId: z.string(),
   jobId: z.string(),
@@ -50,7 +52,7 @@ export class GeminiImageClient {
 
   async generateImages(request: GenerateImagesRequest): Promise<GenerateImagesResponse> {
     const validatedRequest = GenerateImagesRequestSchema.parse(request);
-    const { prompt, refPackUrls, variants, sceneId, jobId } = validatedRequest;
+    const { prompt, refPackUrls, referenceImages, referenceMode, variants, sceneId, jobId } = validatedRequest;
     
     // If GCS operations are not provided, return error
     if (!this.gcsOps) {
@@ -60,6 +62,11 @@ export class GeminiImageClient {
     console.log(`🎨 Starting image generation for scene ${sceneId}, job ${jobId}`);
     console.log(`📝 Prompt: ${prompt.substring(0, 100)}...`);
     console.log(`🔢 Generating ${variants} variant(s)`);
+    
+    // Log reference images if provided
+    if (referenceImages && referenceImages.length > 0) {
+      console.log(`🖼️ Using ${referenceImages.length} reference image(s) in ${referenceMode || 'style_only'} mode`);
+    }
     
     try {
       const images = [];

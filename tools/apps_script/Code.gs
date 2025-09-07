@@ -44,9 +44,28 @@ function onOpen() {
     .addItem('🧪 Test Generate (Free)', 'generateImagesDryRun')
     .addItem('🚀 Live Generate ($0.25)', 'generateImagesLive')
     .addSeparator()
+    .addItem('🖼️ Open Reference Manager', 'openWebApp')
     .addItem('📊 Refresh Status', 'refreshStatus')
     .addItem('🔄 Clear All Status', 'clearAllStatus')
     .addToUi();
+}
+
+/**
+ * Open the web app reference manager
+ */
+function openWebApp() {
+  const webAppUrl = 'https://your-web-app-url.com'; // TODO: Replace with actual web app URL
+  const html = HtmlService.createHtmlOutput(
+    `<div style="padding: 20px;">
+      <h3>🖼️ Reference Manager</h3>
+      <p>Opening visual reference manager...</p>
+      <a href="${webAppUrl}" target="_blank" style="display: inline-block; padding: 10px 20px; background: #4285f4; color: white; text-decoration: none; border-radius: 4px;">Open Reference Manager</a>
+    </div>`
+  )
+  .setTitle('Reference Manager')
+  .setWidth(400);
+  
+  SpreadsheetApp.getUi().showSidebar(html);
 }
 
 /**

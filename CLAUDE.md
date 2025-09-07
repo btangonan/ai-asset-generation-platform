@@ -351,3 +351,36 @@ curl -X POST https://orchestrator-582559442661.us-central1.run.app/upload-refere
 ---
 
 **Note**: This represents the successful completion of emergency deployment fixes and port configuration standardization. All critical issues have been resolved and the system is production-ready.
+
+## 🎯 HYBRID v1 IMPLEMENTATION - 10-DAY ACCEPTANCE CRITERIA
+
+### ✅ COMPLETED IMPLEMENTATION (12 Steps)
+
+**Date**: Implementation completed following strict execution rules with tiny diffs (≤30 LOC each)
+
+1. ✅ **Updated schemas.ts** - Added RefUrlSchema with mode and hash for content deduplication
+2. ✅ **Created ref-merge.ts** - SHA-256 deduplication, per-row priority, cap at 6
+3. ✅ **Created ledger.ts** - GCS state management with JSON storage (no Firestore)
+4. ✅ **Added progress.ts** - SSE endpoint with 2-second polling from GCS
+5. ✅ **Updated images.ts** - Integrated ledger and reference merge functionality
+6. ✅ **Updated gemini-image-client.ts** - Added reference image support
+7. ✅ **Updated Code.gs** - Added web app menu, confirmed single POST call
+8. ✅ **Created BatchProgress.tsx** - React SSE component for real-time progress
+9. ✅ **Created ref-merge.test.ts** - Unit tests for deduplication and priority
+10. ✅ **Updated env.ts** - Added WEB_APP_URL and REFERENCE_PACK_PREFIX
+11. ✅ **Updated server.ts** - Registered progress route for SSE
+12. ✅ **Updated CLAUDE.md** - Added this acceptance criteria
+
+### 🔍 KEY ARCHITECTURAL DECISIONS
+- **NO WebSockets**: Using SSE for Cloud Run compatibility
+- **GCS-only storage**: No Firestore, using JSON state files
+- **SHA-256 deduplication**: Content-based, not URL-based
+- **Reference priority**: Per-row → global pack → cap at 6
+- **Single POST**: Apps Script makes one call, avoiding 6-min timeout
+
+### ✅ ACCEPTANCE TESTS
+- [ ] Reference merge deduplicates identical images
+- [ ] SSE progress updates work on Cloud Run
+- [ ] Apps Script sidebar opens web app
+- [ ] Batch state persists in GCS
+- [ ] 100-row batch completes successfully

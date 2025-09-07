@@ -6,7 +6,7 @@ const optionalTrim = z.string().transform(s => s.trim()).optional();
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('production'),
-  PORT: z.coerce.number().default(9090),
+  PORT: z.string().optional().transform(val => parseInt(val || process.env.PORT || '9090', 10)),
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error']).default('info'),
   
   // Google Cloud
@@ -28,6 +28,10 @@ const envSchema = z.object({
   // Sheets
   GOOGLE_SHEETS_API_KEY: z.string().optional(),
   GOOGLE_SHEETS_ID: z.string().optional(),
+  
+  // Web App Integration
+  WEB_APP_URL: z.string().url().optional(),
+  REFERENCE_PACK_PREFIX: z.string().default('reference-packs'),
   
   // Gemini - Optional in prod, may use ADC
   GEMINI_API_KEY: optionalTrim,
