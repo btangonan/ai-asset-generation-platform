@@ -295,6 +295,8 @@ export async function imagesRoutes(
         prompt: items.map(i => i.prompt).join('; '),
         images: totalImages,
         cost: actualCost,
+        model: 'gemini-2.5-flash',
+        requestId: request.id,
       });
     }
     

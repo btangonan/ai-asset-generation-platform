@@ -12,6 +12,8 @@ export async function appendLedger(entry: {
   prompt: string;
   images: number;
   cost: number;
+  model?: string;
+  requestId?: string;
 }) {
   if (!env.BUDGET_LEDGER_ENABLED) return;
   
@@ -19,6 +21,13 @@ export async function appendLedger(entry: {
   const filename = `ledger/${date}.jsonl`;
   const file = bucket.file(filename);
   
-  const line = JSON.stringify(entry) + '\n';
+  // Enrich the entry with additional context
+  const enrichedEntry = {
+    ...entry,
+    model: entry.model || 'nano-banana',
+    requestId: entry.requestId || null,
+  };
+  
+  const line = JSON.stringify(enrichedEntry) + '\n';
   await file.save(line, { resumable: false, validation: false });
 }
