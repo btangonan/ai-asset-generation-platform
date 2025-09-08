@@ -44,13 +44,13 @@ export const VideoBatchItemSchema = z.object({
   resolution: ResolutionSchema,
   duration_s: z.literal(8),    // Hard constraint
   fps: z.literal(24),          // Hard constraint
-});
+}).strict();
 
 export const VideoBatchRequestSchema = z.object({
   items: z.array(VideoBatchItemSchema).min(1).max(50),
   runMode: RunModeSchema.default('dry_run'),
   confirmCount: z.number().int().min(1),  // User must type exact count
-});
+}).strict();
 
 // Sheet row schema (complete future-proofed version)
 export const SheetRowSchema = z.object({
@@ -82,7 +82,7 @@ export const SheetRowSchema = z.object({
   // Job tracking
   job_id: z.string().optional(),
   locked_by: z.string().email().optional(),
-});
+}).strict();
 
 // Job status schema
 export const JobStatusSchema = z.object({
@@ -94,7 +94,7 @@ export const JobStatusSchema = z.object({
   estimatedCompletion: z.string().datetime().optional(),
   outputs: z.array(z.string().url()),
   error: z.string().optional(),
-});
+}).strict();
 
 // Image generation schemas with reference support
 export const GenerateImagesParamsSchema = z.object({

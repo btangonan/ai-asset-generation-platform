@@ -12,13 +12,22 @@ describe('Schemas', () => {
     const validImageItem = {
       scene_id: 'TEST-001',
       prompt: 'A beautiful landscape with mountains and lakes',
-      ref_pack_public_url: 'https://storage.googleapis.com/test-bucket/refs/landscape',
+      ref_pack_public_urls: [{
+        url: 'https://storage.googleapis.com/test-bucket/refs/landscape'
+      }],
       variants: 3,
     };
 
     it('should accept valid image batch item', () => {
       const result = ImageBatchItemSchema.parse(validImageItem);
-      expect(result).toEqual(validImageItem);
+      expect(result).toEqual({
+        ...validImageItem,
+        ref_pack_public_urls: [{
+          url: 'https://storage.googleapis.com/test-bucket/refs/landscape',
+          mode: 'style_only'  // Default value added by Zod
+        }],
+        reference_mode: 'style_only'  // Default value added by Zod
+      });
     });
 
     it('should reject empty scene_id', () => {
@@ -42,7 +51,7 @@ describe('Schemas', () => {
     });
 
     it('should reject invalid URL', () => {
-      const invalidItem = { ...validImageItem, ref_pack_public_url: 'not-a-url' };
+      const invalidItem = { ...validImageItem, ref_pack_public_urls: [{ url: 'not-a-url' }] };
       expect(() => ImageBatchItemSchema.parse(invalidItem)).toThrow();
     });
 
@@ -58,7 +67,9 @@ describe('Schemas', () => {
         {
           scene_id: 'TEST-001',
           prompt: 'Test prompt',
-          ref_pack_public_url: 'https://storage.googleapis.com/test/refs',
+          ref_pack_public_urls: [{
+            url: 'https://storage.googleapis.com/test/refs'
+          }],
           variants: 2,
         },
       ],
